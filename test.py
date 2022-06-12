@@ -1,0 +1,1 @@
+from pages import daily_load_page
