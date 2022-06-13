@@ -25,8 +25,8 @@ page_header = dbc.Row(children=[ # Заголовочная строка с за
         dbc.Col(
             html.Img(src='https://priem.voenmeh.ru/d/sayt_logo.png'), width=2
         ),
-        dbc.Col(html.Div("Статистика приема БГТУ им. Д.Ф. Устинова \"Военмех\"",
-                         style={'textAlign': 'center', 'fontSize': '24px'})),
+        dbc.Col(html.Div("Статистика приема БГТУ \"ВОЕНМЕХ\" им. Д.Ф. Устинова",
+                         style={'textAlign': 'left', 'fontSize': '24px'}), width=7),
         dbc.Col([
             html.Div(children=f"Дата и время: {datetime.datetime.now().strftime('%d-%m-%y  %H:%M:%S')}",
                      id='datetime-header', style={'textAlign': 'center', 'fontSize': '18px'}),
