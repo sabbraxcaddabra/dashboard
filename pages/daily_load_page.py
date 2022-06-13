@@ -61,9 +61,10 @@ daily_load = html.Div(children=[
             html.Div('Тип подачи заявления'),
             dcc.Dropdown(
                 id='type_dropdown',
-                options=['Лично', 'По почте', 'В личном кабинете'],
-                value='Лично',
-                searchable=False
+                options=['Все', 'Лично', 'По почте', 'В личном кабинете'],
+                value='Все',
+                searchable=False,
+                clearable=False
             )
         ]),
     ]),
@@ -108,7 +109,10 @@ def plot_daily_load(start, end, type):
         '06': 'Июнь'
     }
 
-    tmp_df = new_df.loc[(new_df['date'] >= start) & (new_df['date'] <= end) & (new_df['type_p'] == pattetn[type])].groupby(['date'])
+    if type != 'Все':
+        tmp_df = new_df.loc[(new_df['date'] >= start) & (new_df['date'] <= end) & (new_df['type_p'] == pattetn[type])].groupby(['date'])
+    else:
+        tmp_df = new_df.loc[(new_df['date'] >= start) & (new_df['date'] <= end)].groupby(['date'])
 
 
     sum_counts = tmp_df.count()['id']
