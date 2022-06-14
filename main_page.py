@@ -38,7 +38,7 @@ report_type = html.Div(children=[
     html.H2('Тип отчета'),
     dcc.Dropdown(
         id='report_type',
-        options={0: 'Ежедневный отчет', 1: 'Деканское'}, value=0
+        options=['Деканское', 'Ежедневный отчет'], value='Деканское'
     )
 ])
 
@@ -56,10 +56,10 @@ app.layout = html.Div(children=[
 def refresh_page(report_type):
 
     report_dict = {
-        0: '/daily_load_page',
-        1: '/stats_page'
+        'Ежедневный отчет': '/daily_load_page',
+        'Деканское': '/stats_page'
     }
-    return report_dict[int(report_type)]
+    return report_dict[report_type]
 
 @app.callback(
     Output('datetime-header', 'children'),

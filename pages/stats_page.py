@@ -4,6 +4,7 @@ from dash import Input, Output, callback
 from dash import html
 import datetime
 import pandas as pd
+import io
 
 import dash_bootstrap_components as dbc
 
@@ -16,61 +17,23 @@ import json
 import numpy as np
 
 
-bac_spec_b_header = [
-    {'name': ['', 'Код'], 'id': 'spec_code'},
-    {'name': ['', 'Направление подготовки'], 'id': 'spec_name'},
-    {'name': ['', 'Заявлений всего'], 'id': 'all_application'},
-    {'name': ['', 'Средний балл'], 'id': 'mean_bal'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Всего'], 'id': 'orig_all'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Основные места'], 'id': 'orig_osn'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Целевая квота'], 'id': 'orig_cel'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Особая квота'], 'id': 'orig_os'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Специальная квота'], 'id': 'orig_spec'},
+HEADER = [
+    {'name': ('Направление подготовки, специальность, магистерская программа', 'Код'), 'id': 'spec_code'},
+    {'name': ('Направление подготовки, специальность, магистерская программа', 'Название'), 'id': 'spec_name'},
+    {'name': ('Количество принятых заявлений', 'Бюджет'), 'id': 'application_b'},
+    {'name': ('Количество принятых заявлений', 'Контракт'), 'id': 'application_k'},
+    {'name': ('Оригиналы документа об образовании', 'Бюджет'), 'id': 'orig_b'},
+    {'name': ('Оригиналы документа об образовании', 'Ср.балл'), 'id': 'orig_b_ball'},
+    {'name': ('Оригиналы документа об образовании', 'Контракт'), 'id': 'orig_k'},
+    {'name': ('Оригиналы документа об образовании', 'Ср.балл'), 'id': 'orig_k_ball'},
+    {'name': ('Оригиналы документа об образовании', 'Основные места'), 'id': 'orig_osn'},
+    {'name': ('Оригиналы документа об образовании', 'Целевая квота'), 'id': 'orig_celo'},
 ]
 
-bac_spec_k_header = [
-    {'name': ['', 'Код'], 'id': 'spec_code'},
-    {'name': ['', 'Направление подготовки'], 'id': 'spec_name'},
-    {'name': ['', 'Заявлений всего'], 'id': 'all_application'},
-    {'name': ['', 'Средний балл'], 'id': 'mean_bal'},
-    {'name': ['Оригинал документа об образовании (в скобках места по Доу)', 'Всего'], 'id': 'orig_all'},
+BAC_SPEC_HEADER = HEADER + [
+    {'name': ('Оригиналы документа об образовании', 'Особая квота'), 'id': 'orig_os'},
+    {'name': ('Оригиналы документа об образовании', 'Специальная квота'), 'id': 'orig_spec'},
 ]
-
-mag_b_header = [
-    {'name': ['', 'Код'], 'id': 'spec_code'},
-    {'name': ['', 'Профиль магистратуры'], 'id': 'spec_name'},
-    {'name': ['', 'Заявлений всего'], 'id': 'all_application'},
-    {'name': ['', 'Средний балл'], 'id': 'mean_bal'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Всего'], 'id': 'orig_all'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Основные места'], 'id': 'orig_osn'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Целевая квота'], 'id': 'orig_cel'},
-]
-
-mag_k_header = [
-    {'name': ['', 'Код'], 'id': 'spec_code'},
-    {'name': ['', 'Профиль магистратуры'], 'id': 'spec_name'},
-    {'name': ['', 'Заявлений всего'], 'id': 'all_application'},
-    {'name': ['', 'Средний балл'], 'id': 'mean_bal'},
-    {'name': ['Оригинал документа об образовании (в скобках места по ДОУ)', 'Всего'], 'id': 'orig_all'},
-]
-
-bak_spec_default_dict = {
-   'spec_code': '24.03.03',
-   'spec_name': 'Баллистика и гидроаэродинамика',
-   'kcp_k': 4,
-   'kcp_os': 2,
-   'kcp_spec': 2,
-   'kcp_cel': 4,
-   'kcp_osn': 12
-}
-
-mags_default_dict = {
-   'spec_code': '09.04.01',
-   'spec_name': 'Интеллектуальные системы',
-   'kcp_k': 2,
-   'kcp_cel': 0,
-   'kcp_osn': 5
-}
 
 HERE = os.path.dirname(__file__)
 DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
@@ -78,20 +41,8 @@ KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
 
 df = pd.read_excel(DATA_FILE)
 
-SPEC_TABLE_COLUMNS = [
-    {'name': ['', 'Код'], 'id': 'spec_code'},
-    {'name': ['', 'Направление подготовки'], 'id': 'spec_name'},
-    {'name': ['', 'Заявлений всего'], 'id': 'all_application'},
-    {'name': ['', 'Средний балл'], 'id': 'mean_bal'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Всего'], 'id': 'orig_all'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Основные места'], 'id': 'orig_osn'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Целевая квота'], 'id': 'orig_cel'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Особая квота'], 'id': 'orig_os'},
-    {'name': ['Оригинал документа об образовании (в скобках КЦП)', 'Специальная квота'], 'id': 'orig_spec'},
-]
-
-DEFAULT_DICT = {'spec_code': '24.03.03',
-   'spec_name': 'Баллистика и гидроаэродинамика',
+DEFAULT_DICT = {'spec_code': '00.00.00',
+   'spec_name': '-',
    'kcp_k': 4,
    'kcp_os': 2,
    'kcp_spec': 2,
@@ -102,41 +53,19 @@ DEFAULT_DICT = {'spec_code': '24.03.03',
 with open(KCP_FILE, encoding='utf8') as kcp_file:
     KCP_DICT = json.load(kcp_file)
 
-
-def get_spec_frec():
-
-    spec_dict = {
-        i:name for i, name in zip(range(0, 15), 'qwertyuiopasdfg'.upper())
-    }
-
-    tmp_df = df.groupby(['name']).count()['id']
-
-    fig = go.Figure(data=[
-        go.Bar(y=[spec_dict[i] for i in tmp_df.index], x=tmp_df, orientation='h')
-    ])
-
-    fig.update_layout(
-        margin=dict(l=20, r=20, t=20, b=20),
-    )
-
-    fig.update_xaxes(title_text='Число заявлений')
-    fig.update_yaxes(title_text='Код специальности')
-    # fig = px.histogram(x=[spec_dict[i] for i in tmp_df.index], y=tmp_df)
-    return fig
-
-# name_frequency = html.Div(children=[ # График с распределением по заявлениям
-#     dcc.Graph(figure=get_spec_frec(), id='spec_hist')
-# ])
-
 control_elements = html.Div(children=[
+    html.Button(id='download_all', children='Сформировать полный отчет в Excel'),
+    dcc.Download(id='mag'),
+    dcc.Download(id='bac'),
+    dcc.Download(id='spec'),
     dbc.Row(children=[
         dbc.Col(children=[
             html.H3('Уровень образования'),
             dcc.Dropdown(id='edu_level', options=['Бакалавриат', 'Специалитет', 'Магистратура'], value='Бакалавриат', clearable=False)
         ]),
         dbc.Col(children=[
-            html.H3('Форма оплаты'),
-            dcc.Dropdown(id='fin_type', options=['Бюджет', 'Контракт'], value='Бюджет', clearable=False),
+            html.H3('Форма обучения'),
+            dcc.Dropdown(id='edu_form', options=['Очное', 'Очно-заочное', 'Заочное'], value='Очное', clearable=False),
         ])
     ])
 ])
@@ -186,250 +115,145 @@ layout = html.Div(children=[
 
 @callback(
     [Output('kvots_plot', 'figure'), Output('kvots_div', 'style')],
-    [Input('edu_level', 'value'), Input('fin_type', 'value'), Input('spec_names', 'value')]
+    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
 )
-def get_kvots_plot(edu_level, fin_type, spec_name):
-    if edu_level == 'Магистратура' or fin_type == 'Контракт':
+def get_kvots_plot(edu_level, edu_form, spec_name):
+    tmp_df = get_df_by_edu_level(df, edu_level)
+    tmp_df = get_df_by_edu_form(tmp_df, edu_form)
+    tmp_df = get_df_by_spec_name(tmp_df, spec_name)
+    counts = pd.value_counts(tmp_df['finance_type'])
+    tmp_df = pd.DataFrame(data={'Форма оплаты': counts.index, 'Количество': counts.values})
 
-        return go.Figure(), {'display':'none'}
-    else:
+    fig = px.pie(tmp_df, names='Форма оплаты', values='Количество', height=600, title='Распределение количества заявлений по соответсвующим формам оплаты')
+
+    return fig, {'display':'block'}
+
+def get_spec_table_data(tmp_df, spec_name, kcp_dict):
+
+    tmp_df = get_df_by_spec_name(tmp_df, spec_name) # Отбираем по специальности
+    applications_b = get_df_by_fintype(tmp_df, 'Бюджет').shape[0] # Кол-во заявлений бюджет
+    applications_k = get_df_by_fintype(tmp_df, 'Контракт').shape[0] # Кол-во заявлений контракт
+    tmp_df = tmp_df[tmp_df['abAgr'] == 1] # Отбираем только заявления с подлинником
+    mean_bal_b = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean'].mean() # Средний балл бюджет
+    mean_bal_k = get_df_by_fintype(tmp_df, 'Контракт')['point_mean'].mean() # Средний балл контракт
+
+    tmp_df = tmp_df[tmp_df['abAgr'] == 1]
+    counts = pd.value_counts(tmp_df['finance_type'])
+
+    orig_all_k = counts.get('С оплатой обучения', 0) # Кол-во подлинников контракт
+    orig_osn = counts.get('Основные места', 0) # Подлинников на основные места
+    orig_celo = counts.get('Целевая квота', 0) # Подлинников на целевую квоту
+    orig_os = counts.get('Особая квота', 0) # Подлинников на особую квоту
+    orig_spec = counts.get('Специальная квота', 0) # Подлинников на специальную квоту
+    orig_all_b = orig_osn + orig_celo + orig_os + orig_spec  # Кол-во подлинников бюджет
+
+    spec_dict = {
+        'spec_code': kcp_dict['spec_code'],
+        'spec_name': kcp_dict['spec_name'],
+        'application_b': applications_b,
+        'application_k': applications_k,
+        'orig_b': orig_all_b,
+        'orig_b_ball': round(mean_bal_b, 1),
+        'orig_k': orig_all_k,
+        'orig_k_ball': round(mean_bal_k, 1),
+        'orig_osn': orig_osn,
+        'orig_celo': orig_celo,
+        'orig_os': orig_os,
+        'orig_spec': orig_spec
+    }
+    return spec_dict
+
+def get_excel_file(filename):
+
+    tmp_df = pd.read_excel(filename, index_col=0)
+    strIO = io.BytesIO()
+    excel_writer = pd.ExcelWriter(strIO, engine="openpyxl")
+
+    excel_data = strIO.getvalue()
+    strIO.seek(0)
+
+    return dcc.send_bytes(strIO, filename)
+
+@callback(
+    [Output('bac', 'data'), Output('spec', 'data'), Output('mag', 'data')],
+    [Input("download_all", "n_clicks")], prevent_initial_call=True
+)
+def download_all(n_clicks):
+    for edu_level in ('Бакалавриат', 'Специалитет', 'Магистратура'):
+        header = BAC_SPEC_HEADER if edu_level != 'Магистратура' else HEADER
         tmp_df = get_df_by_edu_level(df, edu_level)
-        tmp_df = get_df_by_fintype(tmp_df, fin_type)
-        tmp_df = get_df_by_spec_name(tmp_df, spec_name)
-        counts = pd.value_counts(tmp_df['finance_type'])
-        tmp_df = pd.DataFrame(data={'Форма оплаты': counts.index, 'Количество': counts.values})
 
-        fig = px.pie(tmp_df, names='Форма оплаты', values='Количество', height=600, title='Распределение количества заявлений по соответсвующим формам оплаты')
-
-        return fig, {'display':'block'}
-
-
-
+        with pd.ExcelWriter(f'{edu_level}.xlsx', engine='openpyxl', mode='w') as writer:
+            for edu_form in ('Очное', 'Очно-заочное', 'Заочное'):
+                tmp_tmp_df = get_df_by_edu_form(tmp_df, edu_form)
+                specs = tmp_tmp_df['specName'].unique()
+                data = []
+                for spec in specs:
+                    kcp_dict = KCP_DICT.get(spec, DEFAULT_DICT)
+                    data.append(get_spec_table_data(tmp_tmp_df, spec_name=spec, kcp_dict=kcp_dict))
+                data_for_data_table = {}
+                for head in header:
+                    header_name = head['name']
+                    header_id = head['id']
+                    header_data = [dat_dict[header_id] for dat_dict in data]
+                    data_for_data_table[header_name] = header_data
+                table_df = pd.DataFrame(
+                    data=data_for_data_table
+                )
+                table_df.to_excel(writer, sheet_name=edu_form)
+    return dcc.send_file('Бакалавриат.xlsx'), dcc.send_file('Специалитет.xlsx'), dcc.send_file('Магистратура.xlsx')
 
 @callback(
     Output('info_table', 'children'),
-    [Input('edu_level', 'value'), Input('fin_type', 'value'), Input('spec_names', 'value')]
+    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
 )
-def get_info_table(edu_level, fin_type, spec_name):
+def get_info_table(edu_level, edu_form, spec_name):
 
     tmp_df = get_df_by_edu_level(df, edu_level)
-    tmp_df = get_df_by_fintype(tmp_df, fin_type)
+    tmp_df = get_df_by_edu_form(tmp_df, edu_form)
 
     if edu_level != 'Магистратура':
-        return get_bak_spec_table(tmp_df, edu_level, fin_type, spec_name)
+        header = BAC_SPEC_HEADER
     else:
-        return get_mag_table(tmp_df, edu_level, fin_type, spec_name)
+        header = HEADER
 
-def get_header(edu_level, fin_type):
-    headers_dict = {
-        'Бакалавриат': {'Бюджет': bac_spec_b_header, 'Контракт': bac_spec_k_header},
-        'Специалитет': {'Бюджет': bac_spec_b_header, 'Контракт': bac_spec_k_header},
-        'Магистратура': {'Бюджет': mag_b_header, 'Контракт': mag_k_header},
-    }
-    return headers_dict[edu_level][fin_type]
-
-def get_bak_spec_table(tmp_df, edu_level, fin_type, spec_name):
-
-    header = get_header(edu_level, fin_type)
-    fin_type_dict = {'Бюджет': get_bak_spec_b_table_data, 'Контракт': get_bak_spec_k_table_data}
-    table_func = fin_type_dict[fin_type]
-
-    if spec_name == 'Все':
-        specs = tmp_df['specName'].unique()
+    if spec_name != 'Все':
+        kcp_dict = KCP_DICT.get(spec_name, DEFAULT_DICT)
+        data = [get_spec_table_data(tmp_df, spec_name=spec_name, kcp_dict=kcp_dict)]
+    else:
         data = []
-        for spec in specs:
-            spec_dict = table_func(tmp_df, edu_level, spec)
-            data.append(spec_dict)
-    else:
-        data = [table_func(tmp_df, edu_level, spec_name)]
-
-    if spec_name == 'Все':
-        export_kwargs = dict(export_headers='display', export_format='xlsx')
-    else:
-        export_kwargs = dict()
-
+        for spec in tmp_df['specName'].unique():
+            kcp_dict = KCP_DICT.get(spec, DEFAULT_DICT)
+            data.append(get_spec_table_data(tmp_df, spec_name=spec, kcp_dict=kcp_dict))
     return dash.dash_table.DataTable(
         columns=header,
         data=data,
         merge_duplicate_headers=True,
-        style_cell={'font_size': '16px',
+        style_cell={
                     'text_align': 'left'
                     },
-        **export_kwargs
     )
-
-
-def get_mag_table(tmp_df, edu_level, fin_type, spec_name):
-    header = get_header(edu_level, fin_type)
-    fin_type_dict = {'Бюджет': get_mags_b_table_data, 'Контракт': get_mags_k_table_data}
-    table_func = fin_type_dict[fin_type]
-
-    if spec_name == 'Все':
-        specs = tmp_df['specName'].unique()
-        data = []
-        for spec in specs:
-            spec_dict = table_func(tmp_df, spec)
-            data.append(spec_dict)
-    else:
-        data = [table_func(tmp_df, spec_name)]
-
-    if spec_name == 'Все':
-        export_kwargs = dict(export_headers='display', export_format='xlsx')
-    else:
-        export_kwargs = dict()
-
-    return dash.dash_table.DataTable(
-        columns=header,
-        data=data,
-        merge_duplicate_headers=True,
-        style_cell={'font_size': '16px',
-                    'text_align': 'left'
-                    },
-        **export_kwargs
-    )
-
 
 @callback(
     [Output('spec_names', 'options'), Output('spec_names', 'value')],
-    [Input('edu_level', 'value'), Input('fin_type', 'value')]
+    [Input('edu_level', 'value'), Input('edu_form', 'value')]
 )
-def get_spec_names(edu_level, fin_type):
+def get_spec_names(edu_level, edu_form):
     tmp_df = get_df_by_edu_level(df, edu_level)
-    tmp_df = get_df_by_fintype(tmp_df, fin_type)
+    tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     specs = ['Все'] + list(tmp_df['specName'].unique())
 
     return specs, 'Все'
 
-def get_mags_b_table_data(tmp_df, spec_name): # Таблица на магистратуру бюджет
-
-    tmp_tmp_df = tmp_df[tmp_df['specName'] == spec_name]
-    mean_bal = tmp_tmp_df['point_mean'].mean()
-    applications = tmp_tmp_df.shape[0]
-    orig_all = pd.value_counts(tmp_tmp_df['abAgr']).get(1, 0)
-    orig_osn = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Основные места']['abAgr']).get(1, 0)
-    orig_cel = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Целевая квота']['abAgr']).get(1, 0)
-
-    kcp_dict = KCP_DICT['mag'].get(spec_name, mags_default_dict)
-    kcp_all = kcp_dict['kcp_osn'] + kcp_dict['kcp_cel']
-    spec_dict = {
-        'spec_code': kcp_dict['spec_code'],
-        'spec_name': kcp_dict['spec_name'],
-        'all_application': applications,
-        'mean_bal': round(mean_bal, 2),
-        'orig_all': f'{orig_all} ({kcp_all})',
-        'orig_osn': f'{orig_osn} ({kcp_dict["kcp_osn"]})',
-        'orig_cel': f'{orig_cel} ({kcp_dict["kcp_cel"]})'
-    }
-    return spec_dict
-
-def get_mags_k_table_data(tmp_df, spec_name): # Таблица на магистратуру контракт
-
-    tmp_tmp_df = tmp_df[tmp_df['specName'] == spec_name]
-    mean_bal = tmp_tmp_df['point_mean'].mean()
-    applications = tmp_tmp_df.shape[0]
-    orig_all = pd.value_counts(tmp_tmp_df['abAgr']).get(1, 0)
-
-    kcp_dict = KCP_DICT['mag'].get(spec_name, mags_default_dict)
-    spec_dict = {
-        'spec_code': kcp_dict['spec_code'],
-        'spec_name': kcp_dict['spec_name'],
-        'all_application': applications,
-        'mean_bal': round(mean_bal, 2),
-        'orig_all': f'{orig_all} ({kcp_dict["kcp_k"]})'
-    }
-    return spec_dict
-
-def get_bak_spec_b_table_data(tmp_df, edu_level, spec_name): # Таблица на бакалавриат / специалитет бюджет
-    edu_level_dict = {
-        'Бакалавриат': 'bac',
-        'Специалитет': 'spec'
-    }
-
-    edu_level = edu_level_dict[edu_level]
-    tmp_tmp_df = tmp_df[tmp_df['specName'] == spec_name]
-    mean_bal = tmp_tmp_df['point_mean'].mean()
-    applications = tmp_tmp_df.shape[0]
-    orig_all = pd.value_counts(tmp_tmp_df['abAgr']).get(1, 0)
-    orig_osn = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Основные места']['abAgr']).get(1, 0)
-    orig_cel = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Целевая квота']['abAgr']).get(1, 0)
-    orig_os = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Особая квота']['abAgr']).get(1, 0)
-    orig_spec = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Специальная квота']['abAgr']).get(1, 0)
-    kcp_dict = KCP_DICT[edu_level].get(spec_name, bak_spec_default_dict)
-    kcp_all = kcp_dict['kcp_osn'] + kcp_dict['kcp_os'] + kcp_dict['kcp_spec'] + kcp_dict['kcp_cel']
-    spec_dict = {
-        'spec_code': kcp_dict['spec_code'],
-        'spec_name': kcp_dict['spec_name'],
-        'all_application': applications,
-        'mean_bal': round(mean_bal, 2),
-        'orig_all': f'{orig_all} ({kcp_all})',
-        'orig_osn': f'{orig_osn} ({kcp_dict["kcp_osn"]})',
-        'orig_cel': f'{orig_cel} ({kcp_dict["kcp_cel"]})',
-        'orig_os': f'{orig_os} ({kcp_dict["kcp_os"]})',
-        'orig_spec': f'{orig_spec} ({kcp_dict["kcp_spec"]})',
-    }
-    return spec_dict
-
-def get_bak_spec_k_table_data(tmp_df, edu_level, spec_name): # Таблица на бакалавриат / специалитет контракт
-    edu_level_dict = {
-        'Бакалавриат': 'bac',
-        'Специалитет': 'spec'
-    }
-
-    edu_level = edu_level_dict.get(edu_level, 'bac')
-
-    tmp_tmp_df = tmp_df[tmp_df['specName'] == spec_name]
-    mean_bal = tmp_tmp_df['point_mean'].mean()
-    applications = tmp_tmp_df.shape[0]
-    orig_all = pd.value_counts(tmp_tmp_df['abAgr']).get(1, 0)
-    kcp_dict = KCP_DICT[edu_level].get(spec_name, bak_spec_default_dict)
-    spec_dict = {
-        'spec_code': kcp_dict['spec_code'],
-        'spec_name': kcp_dict['spec_name'],
-        'all_application': applications,
-        'mean_bal': round(mean_bal, 2),
-        'orig_all': f'{orig_all} ({kcp_dict["kcp_k"]})',
-    }
-    return spec_dict
-
-def get_spec_table_data(tmp_df, edu_level, spec_name):
-
-    edu_level_dict = {
-        'Бакалавриат': 'bac',
-        'Специалитет': 'spec'
-    }
-
-    edu_level = edu_level_dict.get(edu_level, 'bac')
-
-    tmp_tmp_df = tmp_df[tmp_df['specName'] == spec_name]
-    mean_bal = tmp_tmp_df['point_mean'].mean()
-    applications = tmp_tmp_df.shape[0]
-    orig_all = pd.value_counts(tmp_tmp_df['abAgr'])[1]
-    orig_osn = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Основные места']['abAgr']).get(1, 0)
-    orig_cel = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Целевая квота']['abAgr']).get(1, 0)
-    orig_os = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Особая квота']['abAgr']).get(1, 0)
-    orig_spec = pd.value_counts(tmp_tmp_df[tmp_tmp_df['finance_type'] == 'Специальная квота']['abAgr']).get(1, 0)
-    kcp_dict = KCP_DICT[edu_level].get(spec_name, bak_spec_default_dict)
-    kcp_all = kcp_dict['kcp_osn'] + kcp_dict['kcp_os'] + kcp_dict['kcp_spec'] + kcp_dict['kcp_cel']
-    spec_dict = {
-        'spec_code': kcp_dict['spec_code'],
-        'spec_name': kcp_dict['spec_name'],
-        'all_application': applications,
-        'mean_bal': round(mean_bal, 2),
-        'orig_all': f'{orig_all} ({kcp_all})',
-        'orig_osn': f'{orig_osn} ({kcp_dict["kcp_osn"]})',
-        'orig_cel': f'{orig_cel} ({kcp_dict["kcp_cel"]})',
-        'orig_os': f'{orig_os} ({kcp_dict["kcp_os"]})',
-        'orig_spec': f'{orig_spec} ({kcp_dict["kcp_spec"]})',
-    }
-    return spec_dict
-
+def get_df_by_edu_form(tmp_df, edu_form):
+    return tmp_df[tmp_df['edu_type'] == edu_form]
 
 def get_df_by_fintype(tmp_df, fintype):
     # Фильтруем по признаку Бюджет / Контракт
     if fintype != 'Контракт':
         return tmp_df[tmp_df['finance_type'] != 'С оплатой обучения']
     else:
-        return df[df['finance_type'] == 'С оплатой обучения']
+        return tmp_df[tmp_df['finance_type'] == 'С оплатой обучения']
 
 def get_df_by_edu_level(tmp_df, edu_level):
     # Фильтруем по признаку Бакалавриат / Специалитет / Магистратура
@@ -445,14 +269,14 @@ def get_df_by_spec_name(tmp_df, spec_name):
 
 @callback(
     Output('mean_point_plot', 'figure'),
-    [Input('edu_level', 'value'), Input('fin_type', 'value'), Input('spec_names', 'value'),
+    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
      Input('bal_range', 'value')
      ]
 )
-def update_mean_point_plot(edu_level, fin_type, spec_name, bal_range):
+def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range):
 
     tmp_df = get_df_by_edu_level(df, edu_level)
-    tmp_df = get_df_by_fintype(tmp_df, fin_type)
+    tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
 
 
@@ -469,14 +293,14 @@ def update_mean_point_plot(edu_level, fin_type, spec_name, bal_range):
 
 @callback(
     Output('agree_ratio_plot', 'figure'),
-    [Input('edu_level', 'value'), Input('fin_type', 'value'), Input('spec_names', 'value'),
+    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
      Input('bal_range', 'value')
      ]
 )
-def agree_ratio(edu_level, fin_type, spec_name, bal_range): # Отношение числа согласных к общему числу заявлений
+def agree_ratio(edu_level, edu_form, spec_name, bal_range): # Отношение числа согласных к общему числу заявлений
 
     tmp_df = get_df_by_edu_level(df, edu_level)
-    tmp_df = get_df_by_fintype(tmp_df, fin_type)
+    tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
 
     tmp_df = tmp_df[(tmp_df['point_mean'] > bal_range[0]) & (tmp_df['point_mean'] < bal_range[1])]
