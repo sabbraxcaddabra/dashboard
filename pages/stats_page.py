@@ -25,7 +25,7 @@ HEADER = [
     {'name': ('Оригиналы документа об образовании', 'Бюджет'), 'id': 'orig_b'},
     {'name': ('Оригиналы документа об образовании', 'Ср.балл'), 'id': 'orig_b_ball'},
     {'name': ('Оригиналы документа об образовании', 'Контракт'), 'id': 'orig_k'},
-    {'name': ('Оригиналы документа об образовании', 'Ср.балл'), 'id': 'orig_k_ball'},
+    {'name': ('Оригиналы документа об образовании', 'Ср. балл'), 'id': 'orig_k_ball'},
     {'name': ('Оригиналы документа об образовании', 'Основные места'), 'id': 'orig_osn'},
     {'name': ('Оригиналы документа об образовании', 'Целевая квота'), 'id': 'orig_celo'},
 ]
@@ -38,6 +38,7 @@ BAC_SPEC_HEADER = HEADER + [
 HERE = os.path.dirname(__file__)
 DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
 KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
+TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
 
 df = pd.read_excel(DATA_FILE)
 
@@ -50,8 +51,23 @@ DEFAULT_DICT = {'spec_code': '00.00.00',
    'kcp_osn': 12
 }
 
-with open(KCP_FILE, encoding='utf8') as kcp_file:
+with open(KCP_FILE, encoding='utf8') as kcp_file, open(TOTAL_KCP_FILE, encoding='utf8') as total_kcp_file:
+
     KCP_DICT = json.load(kcp_file)
+    TOTAL_KCP_DICT: dict = json.load(total_kcp_file)
+
+def get_kcp_dict_by_edu_level(edu_level):
+    return TOTAL_KCP_DICT[edu_level]
+
+def get_kcp_dict_by_edu_form(tmp_kcp_dict, edu_form):
+    return tmp_kcp_dict[edu_form]
+
+def get_all_edu_forms(edu_level): # Все доступные формы обучения по уровню образования
+    return list(TOTAL_KCP_DICT[edu_level].keys())
+
+def get_all_specs(edu_level): # Все доступные специальности по уровню образования
+    return ['Все'] + list(TOTAL_KCP_DICT[edu_level]['Очное'].keys())
+
 
 control_elements = html.Div(children=[
     html.Button(id='download_all', children='Сформировать полный отчет в Excel'),
@@ -184,12 +200,14 @@ def download_all(n_clicks):
         tmp_df = get_df_by_edu_level(df, edu_level)
 
         with pd.ExcelWriter(f'{edu_level}.xlsx', engine='openpyxl', mode='w') as writer:
-            for edu_form in ('Очное', 'Очно-заочное', 'Заочное'):
+            for edu_form in get_all_edu_forms(edu_level):
                 tmp_tmp_df = get_df_by_edu_form(tmp_df, edu_form)
-                specs = tmp_tmp_df['specName'].unique()
+                specs = get_all_specs(edu_level=edu_level)[1:]
                 data = []
                 for spec in specs:
-                    kcp_dict = KCP_DICT.get(spec, DEFAULT_DICT)
+                    kcp_dict = get_kcp_dict_by_edu_level(edu_level)
+                    kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, edu_form)
+                    kcp_dict = kcp_dict[spec]
                     data.append(get_spec_table_data(tmp_tmp_df, spec_name=spec, kcp_dict=kcp_dict))
                 data_for_data_table = {}
                 for head in header:
@@ -218,13 +236,18 @@ def get_info_table(edu_level, edu_form, spec_name):
         header = HEADER
 
     if spec_name != 'Все':
-        kcp_dict = KCP_DICT.get(spec_name, DEFAULT_DICT)
+        kcp_dict = get_kcp_dict_by_edu_level(edu_level)
+        kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, edu_form)
+        kcp_dict = kcp_dict[spec_name]
         data = [get_spec_table_data(tmp_df, spec_name=spec_name, kcp_dict=kcp_dict)]
     else:
         data = []
-        for spec in tmp_df['specName'].unique():
-            kcp_dict = KCP_DICT.get(spec, DEFAULT_DICT)
+        for spec in get_all_specs(edu_level)[1:]:
+            kcp_dict = get_kcp_dict_by_edu_level(edu_level)
+            kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, edu_form)
+            kcp_dict = kcp_dict[spec]
             data.append(get_spec_table_data(tmp_df, spec_name=spec, kcp_dict=kcp_dict))
+
     return dash.dash_table.DataTable(
         columns=header,
         data=data,
@@ -236,14 +259,18 @@ def get_info_table(edu_level, edu_form, spec_name):
 
 @callback(
     [Output('spec_names', 'options'), Output('spec_names', 'value')],
-    [Input('edu_level', 'value'), Input('edu_form', 'value')]
+    [Input('edu_level', 'value')]
 )
-def get_spec_names(edu_level, edu_form):
-    tmp_df = get_df_by_edu_level(df, edu_level)
-    tmp_df = get_df_by_edu_form(tmp_df, edu_form)
-    specs = ['Все'] + list(tmp_df['specName'].unique())
-
+def get_spec_names(edu_level):
+    specs = get_all_specs(edu_level)
     return specs, 'Все'
+
+@callback(
+    [Output('edu_form', 'options'), Output('edu_form', 'value')],
+    [Input('edu_level', 'value')]
+)
+def get_edu_forms(edu_level):
+    return get_all_edu_forms(edu_level), 'Очное'
 
 def get_df_by_edu_form(tmp_df, edu_form):
     return tmp_df[tmp_df['edu_type'] == edu_form]
@@ -332,8 +359,8 @@ def update_spb_lo(spec_name):
     tmp_df = tmp_df[(tmp_df['regio'] == 'СПБ') | (tmp_df['regio'] == 'ЛО')]
 
     counts = pd.value_counts(tmp_df['regio'])
-    spb = counts['СПБ']
-    lo = counts['ЛО']
+    spb = counts.get('СПБ', 0)
+    lo = counts.get('ЛО', 0)
 
     tmp_df = pd.DataFrame(data={
         'Регион': counts.index,
@@ -403,8 +430,8 @@ def update_gender_plot(spec_name):
     tmp_df = get_df_by_spec_name(df, spec_name)
 
     counts = pd.value_counts(tmp_df['abGen'])
-    mens = counts[1]
-    womens = counts[0]
+    mens = counts.get(1, 0)
+    womens = counts.get(0, 0)
 
     fig = go.Figure(data=[
         go.Bar(x=['Мужчины'], y=[mens], name='Мужчины'),
