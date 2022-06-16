@@ -19,6 +19,8 @@ import numpy as np
 import win32com.client as win32
 import pythoncom
 
+import openpyxl
+
 
 HEADER = [
     {'name': ('Направление подготовки, специальность, магистерская программа', 'Код'), 'id': 'spec_code'},
@@ -60,14 +62,62 @@ with open(KCP_FILE, encoding='utf8') as kcp_file, open(TOTAL_KCP_FILE, encoding=
     KCP_DICT = json.load(kcp_file)
     TOTAL_KCP_DICT: dict = json.load(total_kcp_file)
 
+
+def size_merged(sheet, first_letter, last_letter):
+    firt_cell_val = str(sheet[f'{first_letter}1'].value)
+    firt_cell_len = len(firt_cell_val)
+    sum_len = 0
+    cells_to_merge = sheet[f'{first_letter}1:{last_letter}1'][0]
+    for cell in cells_to_merge:
+        col_letter = cell.column_letter
+        sum_len += sheet.column_dimensions[col_letter].width
+
+    if 1.3 * firt_cell_len > sum_len:
+        firt_cell_len *= 1.3
+        dlen = (firt_cell_len - sum_len) / len(cells_to_merge)
+
+        for cell in cells_to_merge:
+            col_letter = cell.column_letter
+            sheet.column_dimensions[col_letter].width += dlen
+
+
 def autofit_columns(edu_level, edu_form):
+
     filepath = os.path.abspath(os.path.join(HERE, "..", f"{edu_level}.xlsx"))
-    excel = win32.gencache.EnsureDispatch('Excel.Application', pythoncom.CoInitialize())
-    wb = excel.Workbooks.Open(filepath)
-    ws = wb.Worksheets(f"{edu_form}")
-    ws.Columns.AutoFit()
-    wb.Save()
-    excel.Application.Quit()
+
+    wb = openpyxl.load_workbook(filepath)
+    sheet = wb[edu_form]
+
+    merged_cells = {
+        'Бакалавриат': (('B', 'C'), ('D', 'E'), ('F', 'M')),
+        'Специалитет': (('B', 'C'), ('D', 'E'), ('F', 'M')),
+        'Магистратура': (('B', 'C'), ('D', 'E'), ('F', 'K'))
+    }
+
+    merged_cells = merged_cells[edu_level]
+
+    for merged_cell in merged_cells:
+        sheet.unmerge_cells(f'{merged_cell[0]}1:{merged_cell[1]}1')
+
+    dims = {}
+
+    rows = list(sheet.rows)
+    for row in rows[1:]:
+        for cell in row:
+            if cell.value:
+                dims[cell.column_letter] = max((dims.get(cell.column_letter, 0), len(str(cell.value)) * 1.3))
+
+    for col, value in dims.items():
+        sheet.column_dimensions[col].width = value
+
+    for merged_cell in merged_cells:
+        size_merged(sheet, merged_cell[0], merged_cell[1])
+
+    for merged_cell in merged_cells:
+        sheet.merge_cells(f'{merged_cell[0]}1:{merged_cell[1]}1')
+
+    wb.save(filepath)
+
 
 def get_kcp_dict_by_edu_level(edu_level): # Словарь на уровень образование(внутри ключи - формы обучения, значения - словарь со специальностями)
     return TOTAL_KCP_DICT[edu_level]
