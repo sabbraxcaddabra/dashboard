@@ -16,6 +16,9 @@ import json
 
 import numpy as np
 
+import win32com.client as win32
+import pythoncom
+
 
 HEADER = [
     {'name': ('Направление подготовки, специальность, магистерская программа', 'Код'), 'id': 'spec_code'},
@@ -36,6 +39,7 @@ BAC_SPEC_HEADER = HEADER + [
 ]
 
 HERE = os.path.dirname(__file__)
+
 DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
 KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
 TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
@@ -56,10 +60,19 @@ with open(KCP_FILE, encoding='utf8') as kcp_file, open(TOTAL_KCP_FILE, encoding=
     KCP_DICT = json.load(kcp_file)
     TOTAL_KCP_DICT: dict = json.load(total_kcp_file)
 
-def get_kcp_dict_by_edu_level(edu_level):
+def autofit_columns(edu_level, edu_form):
+    filepath = os.path.abspath(os.path.join(HERE, "..", f"{edu_level}.xlsx"))
+    excel = win32.gencache.EnsureDispatch('Excel.Application', pythoncom.CoInitialize())
+    wb = excel.Workbooks.Open(filepath)
+    ws = wb.Worksheets(f"{edu_form}")
+    ws.Columns.AutoFit()
+    wb.Save()
+    excel.Application.Quit()
+
+def get_kcp_dict_by_edu_level(edu_level): # Словарь на уровень образование(внутри ключи - формы обучения, значения - словарь со специальностями)
     return TOTAL_KCP_DICT[edu_level]
 
-def get_kcp_dict_by_edu_form(tmp_kcp_dict, edu_form):
+def get_kcp_dict_by_edu_form(tmp_kcp_dict, edu_form): # Словарь на форму обуения для словаря, оставшегося при вызове предыдущей функции
     return tmp_kcp_dict[edu_form]
 
 def get_all_edu_forms(edu_level): # Все доступные формы обучения по уровню образования
@@ -133,7 +146,7 @@ layout = html.Div(children=[
     [Output('kvots_plot', 'figure'), Output('kvots_div', 'style')],
     [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
 )
-def get_kvots_plot(edu_level, edu_form, spec_name):
+def get_kvots_plot(edu_level, edu_form, spec_name): # Распределение по формам оплаты
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
@@ -144,7 +157,7 @@ def get_kvots_plot(edu_level, edu_form, spec_name):
 
     return fig, {'display':'block'}
 
-def get_spec_table_data(tmp_df, spec_name, kcp_dict):
+def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с данными на 1 специальность
 
     tmp_df = get_df_by_spec_name(tmp_df, spec_name) # Отбираем по специальности
     applications_b = get_df_by_fintype(tmp_df, 'Бюджет').shape[0] # Кол-во заявлений бюджет
@@ -179,22 +192,11 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict):
     }
     return spec_dict
 
-def get_excel_file(filename):
-
-    tmp_df = pd.read_excel(filename, index_col=0)
-    strIO = io.BytesIO()
-    excel_writer = pd.ExcelWriter(strIO, engine="openpyxl")
-
-    excel_data = strIO.getvalue()
-    strIO.seek(0)
-
-    return dcc.send_bytes(strIO, filename)
-
 @callback(
     [Output('bac', 'data'), Output('spec', 'data'), Output('mag', 'data')],
     [Input("download_all", "n_clicks")], prevent_initial_call=True
 )
-def download_all(n_clicks):
+def download_all(n_clicks): # Формирует и скачивает все эксель файлы с отчетом по текущей выгрузке из базы
     for edu_level in ('Бакалавриат', 'Специалитет', 'Магистратура'):
         header = BAC_SPEC_HEADER if edu_level != 'Магистратура' else HEADER
         tmp_df = get_df_by_edu_level(df, edu_level)
@@ -219,13 +221,18 @@ def download_all(n_clicks):
                     data=data_for_data_table
                 )
                 table_df.to_excel(writer, sheet_name=edu_form)
+
+    for edu_level in ('Бакалавриат', 'Специалитет', 'Магистратура'):
+        for edu_form in get_all_edu_forms(edu_level):
+            autofit_columns(edu_level, edu_form)
+
     return dcc.send_file('Бакалавриат.xlsx'), dcc.send_file('Специалитет.xlsx'), dcc.send_file('Магистратура.xlsx')
 
 @callback(
     Output('info_table', 'children'),
     [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
 )
-def get_info_table(edu_level, edu_form, spec_name):
+def get_info_table(edu_level, edu_form, spec_name): # Отрисовывает таблицу с информацией по выбранному уровню образования, форме обучения и названию специальности
 
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
@@ -261,7 +268,7 @@ def get_info_table(edu_level, edu_form, spec_name):
     [Output('spec_names', 'options'), Output('spec_names', 'value')],
     [Input('edu_level', 'value')]
 )
-def get_spec_names(edu_level):
+def get_spec_names(edu_level): # Записывает в качестве опций выпадающего списка со специальностями все специальности по данному уровню образования
     specs = get_all_specs(edu_level)
     return specs, 'Все'
 
@@ -269,10 +276,11 @@ def get_spec_names(edu_level):
     [Output('edu_form', 'options'), Output('edu_form', 'value')],
     [Input('edu_level', 'value')]
 )
-def get_edu_forms(edu_level):
+def get_edu_forms(edu_level): # Записывает в качестве опций выпадающего списка с формами обучения все формы обучения по данному уровню образования
     return get_all_edu_forms(edu_level), 'Очное'
 
 def get_df_by_edu_form(tmp_df, edu_form):
+    # Фильтруем по признаку Очное / Очно-Заочное / Заочное
     return tmp_df[tmp_df['edu_type'] == edu_form]
 
 def get_df_by_fintype(tmp_df, fintype):
@@ -287,12 +295,11 @@ def get_df_by_edu_level(tmp_df, edu_level):
     return tmp_df[tmp_df['edu_form'] == edu_level]
 
 def get_df_by_spec_name(tmp_df, spec_name):
+    # Фильтруем по специальности
     if spec_name != 'Все':
         return tmp_df[tmp_df['specName'] == spec_name]
     else:
         return tmp_df
-
-
 
 @callback(
     Output('mean_point_plot', 'figure'),
@@ -300,7 +307,7 @@ def get_df_by_spec_name(tmp_df, spec_name):
      Input('bal_range', 'value')
      ]
 )
-def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range):
+def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range): # Обновляет график с распределением баллов
 
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
@@ -324,7 +331,7 @@ def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range):
      Input('bal_range', 'value')
      ]
 )
-def agree_ratio(edu_level, edu_form, spec_name, bal_range): # Отношение числа согласных к общему числу заявлений
+def agree_ratio(edu_level, edu_form, spec_name, bal_range): # Обновляет график отношения числа согласных к общему числу заявлений
 
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
@@ -352,7 +359,7 @@ def agree_ratio(edu_level, edu_form, spec_name, bal_range): # Отношение
     Output('spb_lo', 'children'),
     [Input('spec_names', 'value')]
 )
-def update_spb_lo(spec_name):
+def update_spb_lo(spec_name): # Обновляет таблицу по СПБ и ЛО
 
     tmp_df = get_df_by_spec_name(df, spec_name)
 
@@ -380,7 +387,7 @@ def update_spb_lo(spec_name):
     Output('regio_plot', 'figure'),
     [Input('spec_names', 'value')]
 )
-def update_regio_plot(spec_name):
+def update_regio_plot(spec_name): # Обновляет график с числом заявлений из регионов
 
     tmp_df = get_df_by_spec_name(df, spec_name)
     tmp_df = tmp_df[(tmp_df['regio'] != 'СПБ') & (tmp_df['regio'] != 'ЛО')]
@@ -403,7 +410,7 @@ def update_regio_plot(spec_name):
     Output('citiz_plot', 'figure'),
     [Input('spec_names', 'value')]
 )
-def update_citiz_plot(spec_name):
+def update_citiz_plot(spec_name): # Обновляет график с числом заявлений по гражданству кроме РФ
     tmp_df = get_df_by_spec_name(df, spec_name)
     tmp_df = tmp_df[tmp_df['citiz'] != 'РФ']
     counts = pd.value_counts(tmp_df['citiz'])
@@ -425,7 +432,7 @@ def update_citiz_plot(spec_name):
     Output('gender_plot', 'figure'),
     [Input('spec_names', 'value')]
 )
-def update_gender_plot(spec_name):
+def update_gender_plot(spec_name): # Обновляет график с мужчинами и женщинами
 
     tmp_df = get_df_by_spec_name(df, spec_name)
 

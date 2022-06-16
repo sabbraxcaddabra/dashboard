@@ -20,7 +20,21 @@ new_df = pd.read_excel(DATA_FILE)
 df = pd.read_excel(NEW_DATA_FILE)
 
 
-def get_status_z():
+def get_type_dropdown_options():
+    options = list(new_df['type_p'].unique())
+    return ['Все'] + options
+
+def get_min_data():
+    min_data = new_df['date'].min()
+    min_data = datetime.datetime.strptime(min_data, 'yyyy-mm-dd')
+    return min_data
+
+def get_max_data():
+    min_data = new_df['date'].max()
+    min_data = datetime.datetime.strptime(min_data, 'yyyy-mm-dd')
+    return min_data
+
+def get_status_z():  # Отрисовывает график со статусами заявлений
 
     fig = px.histogram(data_frame=df, x='status_z', color='status_z')
     fig.update_layout(legend_title_text='Статус заявления')
@@ -45,39 +59,50 @@ def get_status_p():
 
     return fig
 
+
 daily_load = html.Div(children=[
     dbc.Row(children=[  # Строчка с распределением нагрузки по дням и типу подачи заявления
         dbc.Col([
             html.Div('Период дней'),
             dcc.DatePickerRange(  # Выбор промежутка дат
                 id='pick_a_date',
-                start_date=datetime.date(year=2022, month=6, day=30),
-                end_date=datetime.date(year=2022, month=7, day=30),
-                max_date_allowed=datetime.date(year=2022, month=7, day=30),
-                min_date_allowed=datetime.date(year=2022, month=6, day=30)
+                start_date=new_df['date'].min(),
+                end_date=new_df['date'].max(),
+                max_date_allowed=new_df['date'].max(),
+                min_date_allowed=new_df['date'].min()
+            )
+        ]),
+        dbc.Col(children=[
+            html.Div('Тип заявления'),
+            dcc.Dropdown(
+                id='type_z_dropdown',
+                options=['Все', 'Заявление с согласием', 'Заявление с оригиналом'],
+                value='Все',
+                searchable=False,
+                clearable=False
             )
         ]),
         dbc.Col(children=[
             html.Div('Тип подачи заявления'),
             dcc.Dropdown(
                 id='type_dropdown',
-                options=['Все', 'Лично', 'По почте', 'В личном кабинете'],
+                options=get_type_dropdown_options(),
                 value='Все',
                 searchable=False,
                 clearable=False
             )
         ]),
     ]),
-    dbc.Row(children=[ # Строчка с самим графиком
+    dbc.Row(children=[  # Строчка с самим графиком
         dcc.Graph(id='daily_load_plot')
     ])
 ])
 
-status_z = dbc.Col(children=[ # График статус заявления
+status_z = dbc.Col(children=[  # График статус заявления
     dcc.Graph(figure=get_status_z(), id='status_z_plot')
 ])
 
-status_pz = html.Div(children=[ # Блок с графиком статуса заявления
+status_pz = html.Div(children=[  # Блок с графиком статуса заявления
     html.H2('Статус заявлений'),
     dbc.Row(children=[status_z])
 ])
@@ -87,6 +112,7 @@ layout = html.Div(children=[
     daily_load,
     status_pz
 ])
+
 
 @callback(
     Output('daily_load_plot', 'figure'),
@@ -100,20 +126,17 @@ def plot_daily_load(start, end, type):
     :param type: Тип подачи заявления
     :return: график типа area
     '''
-    pattetn = {
-        'Лично': 0, 'По почте': 1, 'В личном кабинете': 2
-    }
 
-    locate_date = { # Переименование месяца в дате
-        '07':'Июль',
+    locate_date = {  # Переименование месяца в дате
+        '07': 'Июль',
         '06': 'Июнь'
     }
 
     if type != 'Все':
-        tmp_df = new_df.loc[(new_df['date'] >= start) & (new_df['date'] <= end) & (new_df['type_p'] == pattetn[type])].groupby(['date'])
+        tmp_df = new_df.loc[
+            (new_df['date'] >= start) & (new_df['date'] <= end) & (new_df['type_p'] == type)].groupby(['date'])
     else:
         tmp_df = new_df.loc[(new_df['date'] >= start) & (new_df['date'] <= end)].groupby(['date'])
-
 
     sum_counts = tmp_df.count()['id']
 
