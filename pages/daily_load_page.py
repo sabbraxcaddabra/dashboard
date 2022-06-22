@@ -17,126 +17,9 @@ import datetime
 
 import os
 
-def datatable_settings_multiindex(df, flatten_char = '_'):
-    ''' Plotly dash datatables do not natively handle multiindex dataframes. This function takes a multiindex column set
-    and generates a flattend column name list for the dataframe, while also structuring the table dictionary to represent the
-    columns in their original multi-level format.  
-    
-    Function returns the variables datatable_col_list, datatable_data for the columns and data parameters of 
-    the dash_table.DataTable'''
-    datatable_col_list = []
-        
-    levels = df.columns.nlevels
-    if levels == 1:
-        for i in df.columns:
-            datatable_col_list.append({"name": i, "id": i})
-    else:        
-        columns_list = []
-        for i in df.columns:
-            col_id = flatten_char.join(i)
-            datatable_col_list.append({"name": i, "id": col_id})
-            columns_list.append(col_id)
-        df.columns = columns_list
+from . import data_loader
 
-    datatable_data = df.to_dict('records')
-    
-    return datatable_col_list, datatable_data
-
-def get_dat_from_db():
-    query = """
-    SELECT 
-    application.abiturient_id AS abiturient_id,
-    specialty.id AS spec_id,
-    specialty.name AS spec_name,
-    specialty.code AS spec_code,
-    specialty.level_id AS edu_level_id,
-    edulevel.name AS edu_level,
-    application.fintype_id AS fintype_id,
-    fintype.name AS fintype,
-    application.eduform_id AS edu_form_id,
-    eduform.name AS edu_form,
-    side_info.post_method_id AS post_method_id,
-    post_method.name AS post_method,
-    application.add_time AS add_data,
-    edu_doc.original AS original,
-    fd.name AS disc_1,
-    fae.points AS disc_point_1,
-    sd.name AS disc_2,
-    sae.points AS disc_point_2,
-    td.name AS disc_3,
-    tae.points AS discpoint_3,
-    (fae.points + sae.points + tae.points) AS sum_point
-    FROM
-    application
-        LEFT JOIN
-    specialty ON specialty.id = application.specialty_id
-        LEFT JOIN
-    fintype ON fintype.id = application.fintype_id
-        LEFT JOIN
-    eduform ON eduform.id = application.eduform_id
-        LEFT JOIN
-    side_info ON side_info.abiturient_id = application.abiturient_id
-        LEFT JOIN
-    post_method ON post_method.id = side_info.post_method_id
-        LEFT JOIN
-    edu_doc ON edu_doc.abiturient_id = application.abiturient_id
-        LEFT JOIN
-    edulevel ON edulevel.id = specialty.level_id
-        LEFT JOIN
-    admission_direction AS fda ON fda.specialty_id = specialty.id
-        LEFT JOIN
-    admission_direction_exam_slot AS fades ON fades.admission_direction_id = fda.id
-        AND fades.priority = 1
-        LEFT JOIN
-    admission_direction_exam AS fade ON fade.slot_id = fades.id
-        LEFT JOIN
-    admission_direction AS sda ON sda.specialty_id = specialty.id
-        LEFT JOIN
-    admission_direction_exam_slot AS sades ON sades.admission_direction_id = sda.id
-        AND sades.priority = 2
-        LEFT JOIN
-    admission_direction_exam AS sade ON sade.slot_id = sades.id
-        LEFT JOIN
-    admission_direction AS tda ON tda.specialty_id = specialty.id
-        LEFT JOIN
-    admission_direction_exam_slot AS tades ON tades.admission_direction_id = tda.id
-        AND tades.priority = 3
-        LEFT JOIN
-    admission_direction_exam AS tade ON tade.slot_id = tades.id
-        LEFT JOIN
-    abiturient_exam AS fae ON fae.discipline_id = fade.discipline_id
-        AND fae.abiturient_id = application.abiturient_id
-        LEFT JOIN
-    discipline AS fd ON fd.id = fae.discipline_id
-        LEFT JOIN
-    abiturient_exam AS sae ON sae.discipline_id = sade.discipline_id
-        AND sae.abiturient_id = application.abiturient_id
-        LEFT JOIN
-    discipline AS sd ON sd.id = sae.discipline_id
-        LEFT JOIN
-    abiturient_exam AS tae ON tae.discipline_id = tade.discipline_id
-        AND tae.abiturient_id = application.abiturient_id
-        LEFT JOIN
-    discipline AS td ON td.id = tae.discipline_id
-    WHERE
-    fda.campaign_id <> 3
-        AND sda.campaign_id <> 3
-        AND tda.campaign_id <> 3
-        AND fae.points <> 0
-        AND sae.points <> 0
-        AND tae.points <> 0
-        """
-
-    engine = create_engine(
-        'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
-    )
-
-    connection = engine.connect()
-    df = pd.read_sql(query, connection, parse_dates={'add_data': '%Y/%m/%d'})
-    df['add_data'] = df['add_data'].dt.date
-    connection.close()
-
-    return df
+DATA_LOADER = data_loader.DailyDataLoader()
 
 
 HERE = os.path.dirname(__file__)
@@ -146,7 +29,7 @@ NEW_DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
 new_df = pd.read_excel(DATA_FILE)
 df = pd.read_excel(NEW_DATA_FILE)
 
-real_df = get_dat_from_db()
+real_df = DATA_LOADER.load_data()
 
 def count_orig(series):
     counts = pd.value_counts(series).get(1, 0)
@@ -180,8 +63,12 @@ def get_today_table():
 
     fig = go.Figure(data=table).update_layout()
 
+    height = df_table.shape[0] * 50
+    if height < 200:
+        height = 200
+
     fig.update_layout(
-        height=df_table.shape[0] * 50,
+        height=height,
         margin=dict(l=20, r=20, t=10, b=0),
     )
 

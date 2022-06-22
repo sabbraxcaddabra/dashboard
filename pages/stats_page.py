@@ -18,6 +18,11 @@ import numpy as np
 
 import openpyxl
 
+from . import data_loader
+
+DATA_LOADER = data_loader.DataLoader()
+real_df = DATA_LOADER.load_data()
+
 
 HEADER = [
     {'name': ('Направление подготовки, специальность, магистерская программа', 'Код'), 'id': 'spec_code'},
@@ -44,6 +49,8 @@ KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
 TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
 
 df = pd.read_excel(DATA_FILE)
+
+real_df = DATA_LOADER.load_data()
 
 DEFAULT_DICT = {'spec_code': '00.00.00',
    'spec_name': '-',
@@ -194,10 +201,12 @@ layout = html.Div(children=[
     [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
 )
 def get_kvots_plot(edu_level, edu_form, spec_name): # Распределение по формам оплаты
+    df = DATA_LOADER.data # Получаем из глобальной области видимости данные
+
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
-    counts = pd.value_counts(tmp_df['finance_type'])
+    counts = pd.value_counts(tmp_df['fintype'])
     tmp_df = pd.DataFrame(data={'Форма оплаты': counts.index, 'Количество': counts.values})
 
     fig = px.pie(tmp_df, names='Форма оплаты', values='Количество', height=600, title='Распределение количества заявлений по соответсвующим формам оплаты')
@@ -209,12 +218,11 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     tmp_df = get_df_by_spec_name(tmp_df, spec_name) # Отбираем по специальности
     applications_b = get_df_by_fintype(tmp_df, 'Бюджет').shape[0] # Кол-во заявлений бюджет
     applications_k = get_df_by_fintype(tmp_df, 'Контракт').shape[0] # Кол-во заявлений контракт
-    tmp_df = tmp_df[tmp_df['abAgr'] == 1] # Отбираем только заявления с подлинником
+    tmp_df = tmp_df[tmp_df['original'] == 1] # Отбираем только заявления с подлинником
     mean_bal_b = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean'].mean() # Средний балл бюджет
     mean_bal_k = get_df_by_fintype(tmp_df, 'Контракт')['point_mean'].mean() # Средний балл контракт
 
-    tmp_df = tmp_df[tmp_df['abAgr'] == 1]
-    counts = pd.value_counts(tmp_df['finance_type'])
+    counts = pd.value_counts(tmp_df['fintype'])
 
     orig_all_k = counts.get('С оплатой обучения', 0) # Кол-во подлинников контракт
     orig_osn = counts.get('Основные места', 0) # Подлинников на основные места
@@ -281,6 +289,7 @@ def download_all(n_clicks): # Формирует и скачивает все э
 )
 def get_info_table(edu_level, edu_form, spec_name): # Отрисовывает таблицу с информацией по выбранному уровню образования, форме обучения и названию специальности
 
+    df = DATA_LOADER.data
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
 
@@ -328,23 +337,23 @@ def get_edu_forms(edu_level): # Записывает в качестве опц�
 
 def get_df_by_edu_form(tmp_df, edu_form):
     # Фильтруем по признаку Очное / Очно-Заочное / Заочное
-    return tmp_df[tmp_df['edu_type'] == edu_form]
+    return tmp_df[tmp_df['edu_form'] == edu_form]
 
 def get_df_by_fintype(tmp_df, fintype):
     # Фильтруем по признаку Бюджет / Контракт
     if fintype != 'Контракт':
-        return tmp_df[tmp_df['finance_type'] != 'С оплатой обучения']
+        return tmp_df[tmp_df['fintype'] != 'С оплатой обучения']
     else:
-        return tmp_df[tmp_df['finance_type'] == 'С оплатой обучения']
+        return tmp_df[tmp_df['fintype'] == 'С оплатой обучения']
 
 def get_df_by_edu_level(tmp_df, edu_level):
     # Фильтруем по признаку Бакалавриат / Специалитет / Магистратура
-    return tmp_df[tmp_df['edu_form'] == edu_level]
+    return tmp_df[tmp_df['edu_level'] == edu_level]
 
 def get_df_by_spec_name(tmp_df, spec_name):
     # Фильтруем по специальности
     if spec_name != 'Все':
-        return tmp_df[tmp_df['specName'] == spec_name]
+        return tmp_df[tmp_df['spec_name'] == spec_name]
     else:
         return tmp_df
 
@@ -355,7 +364,7 @@ def get_df_by_spec_name(tmp_df, spec_name):
      ]
 )
 def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range): # Обновляет график с распределением баллов
-
+    df = DATA_LOADER.data
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
@@ -379,18 +388,14 @@ def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range): # Обн�
      ]
 )
 def agree_ratio(edu_level, edu_form, spec_name, bal_range): # Обновляет график отношения числа согласных к общему числу заявлений
-
+    df = DATA_LOADER.data
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
 
     tmp_df = tmp_df[(tmp_df['point_mean'] > bal_range[0]) & (tmp_df['point_mean'] < bal_range[1])]
 
-    agree = tmp_df[tmp_df['abAgr'] == 1]
-
-    mean_z = tmp_df['point_mean'].mean()  # Средний балл заявления
-
-    agree_mean = agree['point_mean'].mean()  # Средний балл согласия
+    agree = tmp_df[tmp_df['original'] == 1]
 
     counts, bins = np.histogram(agree['point_mean'], bins=range(*bal_range, 2))
 
