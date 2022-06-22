@@ -16,9 +16,6 @@ import json
 
 import numpy as np
 
-import win32com.client as win32
-import pythoncom
-
 import openpyxl
 
 
