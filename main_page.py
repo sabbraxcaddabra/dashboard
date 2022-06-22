@@ -1,3 +1,4 @@
+#! /home/sabbraxcaddabra/dash_app_env/bin/python3
 import dash
 from dash import dcc
 from dash import Input, Output, callback
@@ -85,6 +86,6 @@ def display_page(pathname):
         return '404'
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server('172.24.135.27', debug=True)
 
     # app.run_server(debug=True)
