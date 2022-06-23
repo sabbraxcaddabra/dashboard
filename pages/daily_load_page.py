@@ -90,7 +90,10 @@ def get_max_data():
 
 def get_status_z():  # Отрисовывает график со статусами заявлений
 
-    fig = px.histogram(data_frame=df, x='status_z', color='status_z')
+    df = DATA_LOADER.data
+    df = df.drop_duplicates(subset=['abiturient_id'])
+
+    fig = px.histogram(data_frame=df, x='status_name', color='status_name')
     fig.update_layout(legend_title_text='Статус заявления')
 
     fig.update_layout(
@@ -115,6 +118,15 @@ def get_status_p():
 
 
 daily_load = html.Div(children=[
+    dbc.Row(children=[
+       dbc.Col(children=[
+           html.Div('Дата и время выгрузки'),
+       ]),
+        dbc.Col(children=[
+            html.Div(id='load_date'),
+            dcc.Interval(id='load_date_interval', interval=1.8e6)
+        ])
+    ]),
     html.Div('Сводка на сегодня'),
     dcc.Graph(figure=get_today_table(), id='today_table'),
     dbc.Row(children=[  # Строчка с распределением нагрузки по дням и типу подачи заявления
@@ -151,6 +163,9 @@ daily_load = html.Div(children=[
     ]),
     dbc.Row(children=[  # Строчка с самим графиком
         dcc.Graph(id='daily_load_plot')
+    ]),
+    dbc.Row(children=[  # Строчка с кумулятивной диаграммой
+        dcc.Graph(id='daily_load_cum_plot')
     ])
 ])
 
@@ -171,7 +186,53 @@ layout = html.Div(children=[
 
 
 @callback(
-    Output('daily_load_plot', 'figure'),
+    Output('load_date', 'children'),
+    [Input('load_date_interval', 'n_intervals')]
+)
+def update_data(n):
+    DATA_LOADER.load_data()
+    return str(DATA_LOADER.load_date)
+
+def get_load_figure(counts, color, fig_type='not_cum'):
+
+    locate_date = {  # Переименование месяца в дате
+        '03': 'Март',
+        '04': 'Апрель',
+        '05': 'Май',
+        '07': 'Июль',
+        '06': 'Июнь'
+    }
+
+    counts = counts.sort_index()
+
+    date = counts.index
+    if fig_type == 'cum':
+
+        values = counts.values.cumsum()
+        title_text_yaxis = 'Суммарное число заявлений'
+    else:
+        values = counts.values
+        title_text_yaxis = 'Число заявлений'
+
+
+    new_date = []
+
+    for dat in date:
+        new_dat = str(dat).split('-')
+        new_dat[1] = locate_date[new_dat[1]]
+        new_date.append('-'.join(new_dat))
+
+    fig = px.area(x=new_date, y=values, color_discrete_sequence=[color])
+    fig.update_xaxes(title_text='Дата')
+    fig.update_yaxes(title_text=title_text_yaxis)
+
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=20, b=20),
+    )
+    return fig
+
+@callback(
+    [Output('daily_load_plot', 'figure'), Output('daily_load_cum_plot', 'figure')],
     [Input("pick_a_date", "start_date"), Input("pick_a_date", "end_date"), Input('type_dropdown', 'value')]
 )
 def plot_daily_load(start, end, post_type):
@@ -186,14 +247,6 @@ def plot_daily_load(start, end, post_type):
     start = datetime.datetime.strptime(start, '%Y-%m-%d').date()
     end = datetime.datetime.strptime(end, '%Y-%m-%d').date()
 
-    locate_date = {  # Переименование месяца в дате
-        '03': 'Март',
-        '04': 'Апрель',
-        '05': 'Май',
-        '07': 'Июль',
-        '06': 'Июнь'
-    }
-
     above = real_df['add_data'] >= start
     below = real_df['add_data'] <= end
 
@@ -205,22 +258,7 @@ def plot_daily_load(start, end, post_type):
     counts = pd.value_counts(tmp_df['add_data'])
     counts = counts.sort_index()
 
-    date = counts.index
-    values = counts.values
+    fig = get_load_figure(counts, '#08F235', 'not_cum')
+    fig_cum = get_load_figure(counts, '#0839F2', 'cum')
 
-    new_date = []
-
-    for dat in date:
-        new_dat = str(dat).split('-')
-        new_dat[1] = locate_date[new_dat[1]]
-        new_date.append('-'.join(new_dat))
-
-    fig = px.area(x=new_date, y=values)
-    fig.update_xaxes(title_text='Дата')
-    fig.update_yaxes(title_text='Число заявлений')
-
-    fig.update_layout(
-        margin=dict(l=20, r=20, t=20, b=20),
-    )
-
-    return fig
+    return fig, fig_cum

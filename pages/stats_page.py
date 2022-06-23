@@ -21,8 +21,6 @@ import openpyxl
 from . import data_loader
 
 DATA_LOADER = data_loader.DataLoader()
-real_df = DATA_LOADER.load_data()
-
 
 HEADER = [
     {'name': ('Направление подготовки, специальность, магистерская программа', 'Код'), 'id': 'spec_code'},
