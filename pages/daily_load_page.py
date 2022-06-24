@@ -37,8 +37,8 @@ def count_orig(series):
 
 def get_today_table():
     today = datetime.date.today()
-
-    today_df = real_df[real_df['add_data'] == today]
+    df = DATA_LOADER.data
+    today_df = df[df['add_data'] == today]
 
     grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
 
@@ -103,7 +103,6 @@ def get_status_z():  # Отрисовывает график со статуса
 
     return fig
 
-
 def get_status_p():
     tmp_df = pd.value_counts(new_df['status_p'])
 
@@ -115,7 +114,6 @@ def get_status_p():
     )
 
     return fig
-
 
 daily_load = html.Div(children=[
     dbc.Row(children=[
@@ -184,14 +182,13 @@ layout = html.Div(children=[
     status_pz
 ])
 
-
 @callback(
-    Output('load_date', 'children'),
+    [Output('load_date', 'children'), Output('status_z_plot', 'figure'), Output('today_table', 'fugure')],
     [Input('load_date_interval', 'n_intervals')]
 )
 def update_data(n):
     DATA_LOADER.load_data()
-    return str(DATA_LOADER.load_date)
+    return str(DATA_LOADER.load_date), get_status_z(), get_today_table()
 
 def get_load_figure(counts, color, fig_type='not_cum'):
 
