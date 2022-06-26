@@ -31,29 +31,64 @@ df = pd.read_excel(NEW_DATA_FILE)
 
 real_df = DATA_LOADER.load_data()
 
+def get_budget(series):
+    tmp_series = series[series != 'С оплатой обучения']
+    return tmp_series.shape[0]
+
+def get_contract(series):
+    tmp_series = series[series == 'С оплатой обучения']
+    return tmp_series.shape[0]
+
 def count_orig(series):
     counts = pd.value_counts(series).get(1, 0)
     return counts
+
+def day_stats(df):
+    grouped = df.groupby(['spec_code', 'spec_name', 'edu_form']).agg(
+    spec_name_count=('spec_name', 'count'),
+    original_count=('original', count_orig),
+    budget=('fintype', get_budget),
+    kontract=('fintype', get_contract)
+    )
+    return grouped.reset_index()
+
+def get_edu_level_by_code(code):
+    edu_level_code = int(code.split('.')[1])
+    edu_level_codes = {
+        3: 0,
+        5: 1,
+        4: 2
+    }
+    return edu_level_codes[edu_level_code]
+
+def sort_by_edu_level(grouped):
+    grouped['edu_level_code_num'] = grouped['spec_code'].apply(get_edu_level_by_code)
+    sorted_df = grouped.sort_values(by='edu_level_code_num', ascending=True)
+    del sorted_df['edu_level_code_num']
+    return sorted_df
 
 def get_today_table():
     today = datetime.date.today()
     df = DATA_LOADER.data
     today_df = df[df['add_data'] == today]
 
-    grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
+    grouped = day_stats(today_df)
+    df_table = sort_by_edu_level(grouped)
 
-    grouped = grouped.rename(columns={'spec_name': 'Заявлений', 'original': 'Оригиналов'})
-
-    df_table = grouped.reset_index()
-    df_table.loc[df_table['spec_code'].duplicated(), 'spec_code'] = ''
-    df_table.loc[df_table['spec_name'].duplicated(), 'spec_name'] = ''
-
-    df_table = df_table.rename(columns={
-        'spec_code': 'Код',
-        'spec_name': 'Название',
-        'edu_form': 'Форма обучения'
-        }
-    )
+    # grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
+    #
+    # grouped = grouped.rename(columns={'spec_name': 'Заявлений', 'original': 'Оригиналов'})
+    #
+    # df_table = grouped.reset_index()
+    # df_table.loc[df_table['spec_code'].duplicated(), 'spec_code'] = ''
+    # df_table.loc[df_table['spec_name'].duplicated(), 'spec_name'] = ''
+    #
+    # df_table = df_table.rename(columns={
+    #     'spec_code': 'Код',
+    #     'spec_name': 'Название',
+    #     'edu_form': 'Форма обучения'
+    #     }
+    # )
 
     table = go.Table(
         header=dict(values=df_table.columns.tolist()),
