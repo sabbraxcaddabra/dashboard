@@ -117,7 +117,7 @@ class DataLoader(DailyDataLoader):
             JOIN eduform as edu ON edu.id = app.eduform_id
             JOIN post_method as pm ON pm.id = side.post_method_id
 
-        WHERE ad_d.campaign_id !=3 AND ad.type_id = 1 AND ad.deleted_at IS NULL AND iden.status = 1
+        WHERE ad_d.campaign_id !=3 AND side.campaign_id != 3 AND ad.type_id = 1 AND ad.deleted_at IS NULL AND iden.status = 1
         ) as allO
         WHERE IF(edu_level_id != 2, IF(disc_point1 = 0 OR disc_point1 IS NULL OR disc_point2 = 0 OR disc_point2 IS NULL OR disc_point3 = 0 OR disc_point3 IS NULL, false, true), IF(disc_point1 = 0 OR disc_point1 IS NULL, false, true))
         LIMIT 0, 100000;

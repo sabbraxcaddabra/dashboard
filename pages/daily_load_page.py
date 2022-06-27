@@ -1,5 +1,3 @@
-from tkinter.ttk import Style
-from turtle import width
 import dash
 from dash import dcc
 from dash import Input, Output, callback

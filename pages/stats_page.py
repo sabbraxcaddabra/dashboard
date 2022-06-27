@@ -228,7 +228,7 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     applications_b = get_df_by_fintype(tmp_df, 'Бюджет').shape[0] # Кол-во заявлений бюджет
     applications_k = get_df_by_fintype(tmp_df, 'Контракт').shape[0] # Кол-во заявлений контракт
     tmp_df = tmp_df[tmp_df['original'] == 1] # Отбираем только заявления с подлинником
-    print(tmp_df.loc[:, ['abiturient_id', 'fintype', 'point_mean']])
+    # print(tmp_df.loc[:, ['abiturient_id', 'fintype', 'point_mean']])
     mean_bal_b = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean'].mean() # Средний балл бюджет
     mean_bal_k = get_df_by_fintype(tmp_df, 'Контракт')['point_mean'].mean() # Средний балл контракт
 
