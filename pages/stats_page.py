@@ -171,7 +171,7 @@ mean_point = html.Div(children=[ # Блок с распределением ср
 ])
 
 agree_ratio = html.Div(children=[
-    html.H3('Соотношение числа согласий к общему числу заявлений'),
+    html.H3('Соотношение числа оригиналов к общему числу заявлений'),
     html.Div('*С учетом выбранных настроек'),
     dcc.Graph(id='agree_ratio_plot')
 ])
@@ -379,7 +379,6 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
 
-
     tmp_df = tmp_df[(tmp_df['point_mean'] > bal_range[0]) & (tmp_df['point_mean'] < bal_range[1])]
 
     fig = px.histogram(data_frame=tmp_df, x='point_mean', nbins=25, marginal='box')
@@ -421,6 +420,8 @@ def get_regions_plot(spec_name):
     df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
 
+    tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
+
     tmp_df = tmp_df[(tmp_df['region_name'] != 'г. Санкт-Петербург') & (tmp_df['region_name'] != 'Ленинградская обл.')]
 
     counts = pd.value_counts(tmp_df['region_name'])
@@ -443,7 +444,10 @@ def get_spb_lo(spec_name):
     df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
 
+    tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
+
     tmp_df = tmp_df[(tmp_df['region_name'] == 'г. Санкт-Петербург') | (tmp_df['region_name'] == 'Ленинградская обл.')]
+
     counts = pd.value_counts(tmp_df['region_name'])
 
     tmp_df = pd.DataFrame(data={
@@ -460,64 +464,13 @@ def get_spb_lo(spec_name):
 
     return table
 
-
-# @callback(
-#     Output('spb_lo', 'children'),
-#     [Input('spec_names', 'value')]
-# )
-# def update_spb_lo(spec_name): # Обновляет таблицу по СПБ и ЛО
-
-#     df = DATA_LOADER.data
-#     tmp_df = get_df_by_spec_name(df, spec_name)
-
-#     tmp_df = tmp_df[(tmp_df['regio'] == 'СПБ') | (tmp_df['regio'] == 'ЛО')]
-
-#     counts = pd.value_counts(tmp_df['regio'])
-#     spb = counts.get('', 0)
-#     lo = counts.get('ЛО', 0)
-
-#     tmp_df = pd.DataFrame(data={
-#         'Регион': counts.index,
-#         'Количество поступающих': counts.values
-#     })
-
-#     table = dash.dash_table.DataTable(
-#         data=tmp_df.to_dict('records'),
-#         style_cell={'font_size': '20px',
-#                     'text_align': 'center'
-#                     },
-#     )
-
-#     return table
-
-# @callback(
-#     Output('regio_plot', 'figure'),
-#     [Input('spec_names', 'value')]
-# )
-# def update_regio_plot(spec_name): # Обновляет график с числом заявлений из регионов
-
-#     tmp_df = get_df_by_spec_name(df, spec_name)
-#     tmp_df = tmp_df[(tmp_df['regio'] != 'СПБ') & (tmp_df['regio'] != 'ЛО')]
-#     counts = pd.value_counts(tmp_df['regio'])
-#     index = counts.index[::-1]
-#     values = counts.values[::-1]
-
-#     tmp_df = pd.DataFrame(data={'Регион': index, 'Количество поступающих': values})
-
-#     fig = px.bar(data_frame=tmp_df, y='Регион', x='Количество поступающих', orientation='h')
-
-#     fig.update_layout(
-#         yaxis_title="Регион",
-#         xaxis_title="Количество поступающих"
-#     )
-
-#     return fig
-
-
 def get_citiz_plot(spec_name):
     df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
+
+    tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
     tmp_df = tmp_df[tmp_df['country_name'] != 'РОССИЯ']
+
     counts = pd.value_counts(tmp_df['country_name'])
     index = counts.index[::-1]
     values = counts.values[::-1]
@@ -533,32 +486,11 @@ def get_citiz_plot(spec_name):
 
     return fig
 
-
-# @callback(
-#     Output('citiz_plot', 'figure'),
-#     [Input('spec_names', 'value')]
-# )
-# def update_citiz_plot(spec_name): # Обновляет график с числом заявлений по гражданству кроме РФ
-#     tmp_df = get_df_by_spec_name(df, spec_name)
-#     tmp_df = tmp_df[tmp_df['citiz'] != 'РФ']
-#     counts = pd.value_counts(tmp_df['citiz'])
-#     index = counts.index[::-1]
-#     values = counts.values[::-1]
-
-#     tmp_df = pd.DataFrame(data={'Гражданство': index, 'Количество поступающих': values})
-
-#     fig = px.bar(data_frame=tmp_df, y='Гражданство', x='Количество поступающих', orientation='h')
-
-#     fig.update_layout(
-#         yaxis_title='Гражданство',
-#         xaxis_title="Количество поступающих"
-#     )
-
-#     return fig
-
 def get_gender_plot(spec_name):
     df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
+
+    tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
 
     counts = pd.value_counts(tmp_df['gender_id'])
     mens = counts.get(1, 0)
@@ -571,25 +503,5 @@ def get_gender_plot(spec_name):
     )
 
     return fig
-
-# @callback(
-#     Output('gender_plot', 'figure'),
-#     [Input('spec_names', 'value')]
-# )
-# def update_gender_plot(spec_name): # Обновляет график с мужчинами и женщинами
-
-#     tmp_df = get_df_by_spec_name(df, spec_name)
-
-#     counts = pd.value_counts(tmp_df['gender_id'])
-#     mens = counts.get(1, 0)
-#     womens = counts.get(2, 0)
-
-#     fig = go.Figure(data=[
-#         go.Bar(x=['Мужчины'], y=[mens], name='Мужчины'),
-#         go.Bar(x=['Женщины'], y=[womens], name='Женщины')
-#     ]
-#     )
-
-#     return fig
 
 

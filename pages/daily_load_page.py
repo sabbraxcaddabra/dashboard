@@ -44,6 +44,20 @@ def count_orig(series):
     counts = pd.value_counts(series).get(1, 0)
     return counts
 
+def get_total_stats(df):
+    grouped = df.groupby('edu_form').agg(
+        spec_name_count=('spec_name', 'count'),
+        original_count=('original', count_orig),
+        budget=('fintype', get_budget),
+        kontract=('fintype', get_contract)
+    )
+    grouped = grouped.reset_index()
+    grouped.insert(loc=0, column='spec_code', value='-')
+    grouped.insert(loc=1, column='spec_name', value='Итого')
+    och, z = grouped.iloc[0], grouped.iloc[2]
+    grouped.iloc[0], grouped.iloc[2] = z, och
+    return grouped
+
 def day_stats(df):
     grouped = df.groupby(['spec_code', 'spec_name', 'edu_form']).agg(
     spec_name_count=('spec_name', 'count'),
@@ -71,6 +85,8 @@ def sort_by_edu_level(grouped):
 def get_stats(df):
     grouped = day_stats(df)
     df_table = sort_by_edu_level(grouped)
+    total = get_total_stats(df)
+    df_table = pd.concat((total, df_table), ignore_index=True)
     df_table = df_table.rename(columns={
         'spec_code': 'Код',
         'spec_name': 'Название',
@@ -89,26 +105,6 @@ def get_today_table():
     df = DATA_LOADER.data
     today_df = df[df['add_data'] == today]
 
-    # # grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
-    # #
-    # # grouped = grouped.rename(columns={'spec_name': 'Заявлений', 'original': 'Оригиналов'})
-    # #
-    # # df_table = grouped.reset_index()
-    # # df_table.loc[df_table['spec_code'].duplicated(), 'spec_code'] = ''
-    # # df_table.loc[df_table['spec_name'].duplicated(), 'spec_name'] = ''
-    # #
-    # df_table = df_table.rename(columns={
-    #     'spec_code': 'Код',
-    #     'spec_name': 'Название',
-    #     'edu_form': 'Форма обучения',
-    #     'budget': 'Заявлений на бюджет',
-    #     'kontract': 'Заявлений на контракт',
-    #     'spec_name_count': 'Заявлений всего',
-    #     'original_count': 'Оригиналов',
-    #     }
-    # )
-
-
     df_table = get_stats(today_df)
     d_table  = dash.dash_table.DataTable(
         df_table.to_dict('records'),
@@ -120,7 +116,6 @@ def get_today_table():
         header=dict(values=df_table.columns.tolist()),
         cells=dict(values=df_table.T.values)
     )
-
 
     fig = go.Figure(data=table).update_layout()
 
