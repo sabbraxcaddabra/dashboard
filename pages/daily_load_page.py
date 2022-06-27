@@ -356,7 +356,6 @@ def plot_daily_load(n, start, end, post_type, fintype):
 )
 def download_today(n_clics):
     today = datetime.date.today()
-    print(today)
     df = DATA_LOADER.data
     today_df = df[df['add_data'] == today]
     df_table = get_stats(today_df)
