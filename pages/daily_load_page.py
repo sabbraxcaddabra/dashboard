@@ -46,7 +46,7 @@ def count_orig(series):
 
 def get_total_stats(df):
     grouped = df.groupby('edu_form').agg(
-        spec_name_count=('spec_name', 'count'),
+        spec_name_count=('spec_name', lambda series: series.shape[0]),
         original_count=('original', count_orig),
         budget=('fintype', get_budget),
         kontract=('fintype', get_contract)
