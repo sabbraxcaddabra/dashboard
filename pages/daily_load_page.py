@@ -83,12 +83,16 @@ def get_today_table():
     # df_table.loc[df_table['spec_code'].duplicated(), 'spec_code'] = ''
     # df_table.loc[df_table['spec_name'].duplicated(), 'spec_name'] = ''
     #
-    # df_table = df_table.rename(columns={
-    #     'spec_code': 'Код',
-    #     'spec_name': 'Название',
-    #     'edu_form': 'Форма обучения'
-    #     }
-    # )
+    df_table = df_table.rename(columns={
+        'spec_code': 'Код',
+        'spec_name': 'Название',
+        'edu_form': 'Форма обучения',
+        'budget': 'Заявлений на бюджет',
+        'kontract': 'Заявлений на контракт',
+        'spec_name_count': 'Заявлений всего',
+        'original_count': 'Оригиналов',
+        }
+    )
 
     table = go.Table(
         header=dict(values=df_table.columns.tolist()),
@@ -157,7 +161,7 @@ daily_load = html.Div(children=[
        ]),
         dbc.Col(children=[
             html.Div(id='load_date'),
-            dcc.Interval(id='load_date_interval', interval=1.8e6)
+            dcc.Interval(id='load_date_interval', interval=300e3)
         ])
     ]),
     html.Div('Сводка на сегодня'),
