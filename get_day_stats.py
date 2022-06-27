@@ -97,17 +97,21 @@ connection = engine.connect()
 df = pd.read_sql(query, connection, parse_dates={'add_data': '%y/%m/%d'})
 df['add_data'] = df['add_data'].dt.date
 
+df.to_excel('total.xlsx')
+def count_orig(series):
+    counts = pd.value_counts(series).get(1, 0)
+    return counts
 
-# def count_orig(series):
-#     counts = pd.value_counts(series).get(1, 0)
-#     return counts
+today = datetime.date.today()
 
-# today = datetime.date.today()
+today_df = df[df['add_data'] == today]
 
-# today_df = df[df['add_data'] == today]
+today_df.to_excel('21.06.2022_all.xlsx')
 
 
-# grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
+grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
 
-# grouped = grouped.rename(columns={'spec_name': 'Заявлений', 'original': 'Оригиналов'})
-# print(grouped)
+grouped = grouped.rename(columns={'spec_name': 'Заявлений', 'original': 'Оригиналов'})
+print(grouped)
+
+grouped.to_excel('21.06.2022.xlsx')

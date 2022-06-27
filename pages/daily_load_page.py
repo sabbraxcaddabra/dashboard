@@ -1,9 +1,12 @@
+from tkinter.ttk import Style
+from turtle import width
 import dash
 from dash import dcc
 from dash import Input, Output, callback
 from dash import html
 import datetime
 import pandas as pd
+import time
 
 import dash_bootstrap_components as dbc
 
@@ -67,22 +70,9 @@ def sort_by_edu_level(grouped):
     del sorted_df['edu_level_code_num']
     return sorted_df
 
-def get_today_table():
-    today = datetime.date.today()
-    df = DATA_LOADER.data
-    today_df = df[df['add_data'] == today]
-
-    grouped = day_stats(today_df)
+def get_stats(df):
+    grouped = day_stats(df)
     df_table = sort_by_edu_level(grouped)
-
-    # grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
-    #
-    # grouped = grouped.rename(columns={'spec_name': 'Заявлений', 'original': 'Оригиналов'})
-    #
-    # df_table = grouped.reset_index()
-    # df_table.loc[df_table['spec_code'].duplicated(), 'spec_code'] = ''
-    # df_table.loc[df_table['spec_name'].duplicated(), 'spec_name'] = ''
-    #
     df_table = df_table.rename(columns={
         'spec_code': 'Код',
         'spec_name': 'Название',
@@ -92,6 +82,40 @@ def get_today_table():
         'spec_name_count': 'Заявлений всего',
         'original_count': 'Оригиналов',
         }
+    )
+    return df_table
+
+
+def get_today_table():
+    today = datetime.date.today()
+    df = DATA_LOADER.data
+    today_df = df[df['add_data'] == today]
+
+    # # grouped = today_df.groupby(['spec_code', 'spec_name', 'edu_form']).agg({'spec_name': 'count', 'original': count_orig})
+    # #
+    # # grouped = grouped.rename(columns={'spec_name': 'Заявлений', 'original': 'Оригиналов'})
+    # #
+    # # df_table = grouped.reset_index()
+    # # df_table.loc[df_table['spec_code'].duplicated(), 'spec_code'] = ''
+    # # df_table.loc[df_table['spec_name'].duplicated(), 'spec_name'] = ''
+    # #
+    # df_table = df_table.rename(columns={
+    #     'spec_code': 'Код',
+    #     'spec_name': 'Название',
+    #     'edu_form': 'Форма обучения',
+    #     'budget': 'Заявлений на бюджет',
+    #     'kontract': 'Заявлений на контракт',
+    #     'spec_name_count': 'Заявлений всего',
+    #     'original_count': 'Оригиналов',
+    #     }
+    # )
+
+
+    df_table = get_stats(today_df)
+    d_table  = dash.dash_table.DataTable(
+        df_table.to_dict('records'),
+        [{"name": i, "id": i} for i in df_table.columns],
+        style_cell={'textAlign': 'left'},
     )
 
     table = go.Table(
@@ -111,7 +135,7 @@ def get_today_table():
         margin=dict(l=20, r=20, t=10, b=0),
     )
 
-    return fig
+    return d_table
 
 def get_type_dropdown_options():
     options = list(real_df['post_method'].unique())
@@ -155,6 +179,8 @@ def get_status_p():
     return fig
 
 daily_load = html.Div(children=[
+    dcc.Download(id='today_report'),
+    dcc.Download(id='total_report'),
     dbc.Row(children=[
        dbc.Col(children=[
            html.Div('Дата и время выгрузки'),
@@ -165,7 +191,16 @@ daily_load = html.Div(children=[
         ])
     ]),
     html.Div('Сводка на сегодня'),
-    dcc.Graph(figure=get_today_table(), id='today_table'),
+    html.Div(id='daily_table'),
+    dbc.Row(children=[
+        dbc.Col(children=[
+            html.Button(id='today_report_button', children='Сформировать отчет за сегодня в Excel')
+        ], width=4),
+        dbc.Col(children=[
+            html.Button(id='total_report_button', children='Сформировать отчет за все время в Excel'),
+        ], width=4),
+    ]),
+    # dcc.Graph(figure=get_today_table(), id='today_table'),
     dbc.Row(children=[  # Строчка с распределением нагрузки по дням и типу подачи заявления
         dbc.Col([
             html.Div('Период дней'),
@@ -174,7 +209,18 @@ daily_load = html.Div(children=[
                 start_date=real_df['add_data'].min(),
                 end_date=real_df['add_data'].max(),
                 max_date_allowed=real_df['add_data'].max(),
-                min_date_allowed=real_df['add_data'].min()
+                min_date_allowed=real_df['add_data'].min(),
+                display_format='Y-MM-DD'
+            )
+        ]),
+        dbc.Col(children=[
+            html.Div('Тип финансирования'),
+            dcc.Dropdown(
+                id='type_f_dropdown',
+                options=['Все', 'Бюджет', 'Контракт'],
+                value='Все',
+                searchable=False,
+                clearable=False
             )
         ]),
         dbc.Col(children=[
@@ -221,13 +267,21 @@ layout = html.Div(children=[
     status_pz
 ])
 
+def get_df_by_fintype(tmp_df, fintype):
+    # Фильтруем по признаку Бюджет / Контракт
+    if fintype != 'Контракт':
+        return tmp_df[tmp_df['fintype'] != 'С оплатой обучения']
+    else:
+        return tmp_df[tmp_df['fintype'] == 'С оплатой обучения']
+
 @callback(
-    [Output('load_date', 'children'), Output('status_z_plot', 'figure'), Output('today_table', 'fugure')],
+    [Output('load_date', 'children'), Output('status_z_plot', 'figure'), Output('daily_table', 'children')],
     [Input('load_date_interval', 'n_intervals')]
 )
 def update_data(n):
     DATA_LOADER.load_data()
-    return str(DATA_LOADER.load_date), get_status_z(), get_today_table()
+    date = datetime.datetime.strftime(DATA_LOADER.load_date, '%Y-%m-%d %H:%M')
+    return date, get_status_z(), get_today_table()
 
 def get_load_figure(counts, color, fig_type='not_cum'):
 
@@ -269,9 +323,9 @@ def get_load_figure(counts, color, fig_type='not_cum'):
 
 @callback(
     [Output('daily_load_plot', 'figure'), Output('daily_load_cum_plot', 'figure')],
-    [Input("pick_a_date", "start_date"), Input("pick_a_date", "end_date"), Input('type_dropdown', 'value')]
+    [Input("load_date_interval", 'n_intervals'), Input("pick_a_date", "start_date"), Input("pick_a_date", "end_date"), Input('type_dropdown', 'value'), Input('type_f_dropdown', 'value')]
 )
-def plot_daily_load(start, end, post_type):
+def plot_daily_load(n, start, end, post_type, fintype):
     '''
     Функция отрисовывает график нагрузки по дням
     :param start: Начало периода
@@ -279,9 +333,12 @@ def plot_daily_load(start, end, post_type):
     :param type: Тип подачи заявления
     :return: график типа area
     '''
-
     start = datetime.datetime.strptime(start, '%Y-%m-%d').date()
     end = datetime.datetime.strptime(end, '%Y-%m-%d').date()
+
+    real_df = DATA_LOADER.data
+    if fintype != 'Все':
+        real_df = get_df_by_fintype(real_df, fintype)
 
     above = real_df['add_data'] >= start
     below = real_df['add_data'] <= end
@@ -298,3 +355,28 @@ def plot_daily_load(start, end, post_type):
     fig_cum = get_load_figure(counts, '#0839F2', 'cum')
 
     return fig, fig_cum
+
+
+@callback(
+    Output('today_report', 'data'),
+    [Input('today_report_button', "n_clicks")], prevent_initial_call=True
+)
+def download_today(n_clics):
+    today = datetime.date.today()
+    print(today)
+    df = DATA_LOADER.data
+    today_df = df[df['add_data'] == today]
+    df_table = get_stats(today_df)
+    df_table.to_excel(f'{today}.xlsx')
+    return dcc.send_file(f'{today}.xlsx')
+
+@callback(
+    Output('total_report', 'data'),
+    [Input('total_report_button', 'n_clicks')], prevent_initial_call=True
+)
+def download_total(n_clics):
+    today = datetime.date.today()
+    df = DATA_LOADER.data
+    df_table = get_stats(df)
+    df_table.to_excel(f'{today}_total.xlsx')
+    return dcc.send_file(f'{today}_total.xlsx')

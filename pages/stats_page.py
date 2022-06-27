@@ -30,7 +30,7 @@ HEADER = [
     {'name': ('Оригиналы документа об образовании', 'Бюджет'), 'id': 'orig_b'},
     {'name': ('Оригиналы документа об образовании', 'Ср.балл'), 'id': 'orig_b_ball'},
     {'name': ('Оригиналы документа об образовании', 'Контракт'), 'id': 'orig_k'},
-    {'name': ('Оригиналы документа об образовании', 'Ср. балл'), 'id': 'orig_k_ball'},
+    {'name': ('Оригиналы документа об образовании', 'Ср.балл '), 'id': 'orig_k_ball'},
     {'name': ('Оригиналы документа об образовании', 'Основные места'), 'id': 'orig_osn'},
     {'name': ('Оригиналы документа об образовании', 'Целевая квота'), 'id': 'orig_celo'},
 ]
@@ -135,6 +135,7 @@ def get_all_specs(edu_level): # Все доступные специальнос
 
 
 control_elements = html.Div(children=[
+    dcc.Interval(id='load_data_interval', interval=300e3),
     html.Button(id='download_all', children='Сформировать полный отчет в Excel'),
     dcc.Download(id='mag'),
     dcc.Download(id='bac'),
@@ -195,10 +196,20 @@ layout = html.Div(children=[
 ])
 
 @callback(
-    [Output('kvots_plot', 'figure'), Output('kvots_div', 'style')],
-    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
+    [Output('regio_plot', 'figure'), Output('spb_lo', 'children'), Output('gender_plot', 'figure'),
+    Output('citiz_plot', 'figure'),
+    ],
+    [Input('load_data_interval', 'n_intervals'), Input('spec_names', 'value')],
 )
-def get_kvots_plot(edu_level, edu_form, spec_name): # Распределение по формам оплаты
+def update_data(n, spec_name):
+    DATA_LOADER.load_data()
+    return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name)
+
+@callback(
+    [Output('kvots_plot', 'figure'), Output('kvots_div', 'style')],
+    [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
+)
+def get_kvots_plot(n, edu_level, edu_form, spec_name): # Распределение по формам оплаты
     df = DATA_LOADER.data # Получаем из глобальной области видимости данные
 
     tmp_df = get_df_by_edu_level(df, edu_level)
@@ -217,6 +228,7 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     applications_b = get_df_by_fintype(tmp_df, 'Бюджет').shape[0] # Кол-во заявлений бюджет
     applications_k = get_df_by_fintype(tmp_df, 'Контракт').shape[0] # Кол-во заявлений контракт
     tmp_df = tmp_df[tmp_df['original'] == 1] # Отбираем только заявления с подлинником
+    print(tmp_df.loc[:, ['abiturient_id', 'fintype', 'point_mean']])
     mean_bal_b = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean'].mean() # Средний балл бюджет
     mean_bal_k = get_df_by_fintype(tmp_df, 'Контракт')['point_mean'].mean() # Средний балл контракт
 
@@ -283,9 +295,9 @@ def download_all(n_clicks): # Формирует и скачивает все э
 
 @callback(
     Output('info_table', 'children'),
-    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
+    [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value')]
 )
-def get_info_table(edu_level, edu_form, spec_name): # Отрисовывает таблицу с информацией по выбранному уровню образования, форме обучения и названию специальности
+def get_info_table(n, edu_level, edu_form, spec_name): # Отрисовывает таблицу с информацией по выбранному уровню образования, форме обучения и названию специальности
 
     df = DATA_LOADER.data
     tmp_df = get_df_by_edu_level(df, edu_level)
@@ -357,11 +369,11 @@ def get_df_by_spec_name(tmp_df, spec_name):
 
 @callback(
     Output('mean_point_plot', 'figure'),
-    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
+    [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
      Input('bal_range', 'value')
      ]
 )
-def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range): # Обновляет график с распределением баллов
+def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Обновляет график с распределением баллов
     df = DATA_LOADER.data
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
@@ -381,11 +393,11 @@ def update_mean_point_plot(edu_level, edu_form, spec_name, bal_range): # Обн�
 
 @callback(
     Output('agree_ratio_plot', 'figure'),
-    [Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
+    [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
      Input('bal_range', 'value')
      ]
 )
-def agree_ratio(edu_level, edu_form, spec_name, bal_range): # Обновляет график отношения числа согласных к общему числу заявлений
+def agree_ratio(n, edu_level, edu_form, spec_name, bal_range): # Обновляет график отношения числа согласных к общему числу заявлений
     df = DATA_LOADER.data
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
@@ -405,19 +417,34 @@ def agree_ratio(edu_level, edu_form, spec_name, bal_range): # Обновляет
 
     return fig
 
-@callback(
-    Output('spb_lo', 'children'),
-    [Input('spec_names', 'value')]
-)
-def update_spb_lo(spec_name): # Обновляет таблицу по СПБ и ЛО
-
+def get_regions_plot(spec_name):
+    df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
 
-    tmp_df = tmp_df[(tmp_df['regio'] == 'СПБ') | (tmp_df['regio'] == 'ЛО')]
+    tmp_df = tmp_df[(tmp_df['region_name'] != 'г. Санкт-Петербург') & (tmp_df['region_name'] != 'Ленинградская обл.')]
 
-    counts = pd.value_counts(tmp_df['regio'])
-    spb = counts.get('СПБ', 0)
-    lo = counts.get('ЛО', 0)
+    counts = pd.value_counts(tmp_df['region_name'])
+    index = counts.index[::-1]
+    values = counts.values[::-1]
+
+    tmp_df = pd.DataFrame(data={'Регион': index, 'Количество поступающих': values})
+
+    fig = px.bar(data_frame=tmp_df, y='Регион', x='Количество поступающих', orientation='h')
+
+    fig.update_layout(
+        yaxis_title="Регион",
+        xaxis_title="Количество поступающих",
+        height=800
+    )
+
+    return fig
+
+def get_spb_lo(spec_name):
+    df = DATA_LOADER.data
+    tmp_df = get_df_by_spec_name(df, spec_name)
+
+    tmp_df = tmp_df[(tmp_df['region_name'] == 'г. Санкт-Петербург') | (tmp_df['region_name'] == 'Ленинградская обл.')]
+    counts = pd.value_counts(tmp_df['region_name'])
 
     tmp_df = pd.DataFrame(data={
         'Регион': counts.index,
@@ -433,37 +460,65 @@ def update_spb_lo(spec_name): # Обновляет таблицу по СПБ и
 
     return table
 
-@callback(
-    Output('regio_plot', 'figure'),
-    [Input('spec_names', 'value')]
-)
-def update_regio_plot(spec_name): # Обновляет график с числом заявлений из регионов
 
+# @callback(
+#     Output('spb_lo', 'children'),
+#     [Input('spec_names', 'value')]
+# )
+# def update_spb_lo(spec_name): # Обновляет таблицу по СПБ и ЛО
+
+#     df = DATA_LOADER.data
+#     tmp_df = get_df_by_spec_name(df, spec_name)
+
+#     tmp_df = tmp_df[(tmp_df['regio'] == 'СПБ') | (tmp_df['regio'] == 'ЛО')]
+
+#     counts = pd.value_counts(tmp_df['regio'])
+#     spb = counts.get('', 0)
+#     lo = counts.get('ЛО', 0)
+
+#     tmp_df = pd.DataFrame(data={
+#         'Регион': counts.index,
+#         'Количество поступающих': counts.values
+#     })
+
+#     table = dash.dash_table.DataTable(
+#         data=tmp_df.to_dict('records'),
+#         style_cell={'font_size': '20px',
+#                     'text_align': 'center'
+#                     },
+#     )
+
+#     return table
+
+# @callback(
+#     Output('regio_plot', 'figure'),
+#     [Input('spec_names', 'value')]
+# )
+# def update_regio_plot(spec_name): # Обновляет график с числом заявлений из регионов
+
+#     tmp_df = get_df_by_spec_name(df, spec_name)
+#     tmp_df = tmp_df[(tmp_df['regio'] != 'СПБ') & (tmp_df['regio'] != 'ЛО')]
+#     counts = pd.value_counts(tmp_df['regio'])
+#     index = counts.index[::-1]
+#     values = counts.values[::-1]
+
+#     tmp_df = pd.DataFrame(data={'Регион': index, 'Количество поступающих': values})
+
+#     fig = px.bar(data_frame=tmp_df, y='Регион', x='Количество поступающих', orientation='h')
+
+#     fig.update_layout(
+#         yaxis_title="Регион",
+#         xaxis_title="Количество поступающих"
+#     )
+
+#     return fig
+
+
+def get_citiz_plot(spec_name):
+    df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
-    tmp_df = tmp_df[(tmp_df['regio'] != 'СПБ') & (tmp_df['regio'] != 'ЛО')]
-    counts = pd.value_counts(tmp_df['regio'])
-    index = counts.index[::-1]
-    values = counts.values[::-1]
-
-    tmp_df = pd.DataFrame(data={'Регион': index, 'Количество поступающих': values})
-
-    fig = px.bar(data_frame=tmp_df, y='Регион', x='Количество поступающих', orientation='h')
-
-    fig.update_layout(
-        yaxis_title="Регион",
-        xaxis_title="Количество поступающих"
-    )
-
-    return fig
-
-@callback(
-    Output('citiz_plot', 'figure'),
-    [Input('spec_names', 'value')]
-)
-def update_citiz_plot(spec_name): # Обновляет график с числом заявлений по гражданству кроме РФ
-    tmp_df = get_df_by_spec_name(df, spec_name)
-    tmp_df = tmp_df[tmp_df['citiz'] != 'РФ']
-    counts = pd.value_counts(tmp_df['citiz'])
+    tmp_df = tmp_df[tmp_df['country_name'] != 'РОССИЯ']
+    counts = pd.value_counts(tmp_df['country_name'])
     index = counts.index[::-1]
     values = counts.values[::-1]
 
@@ -478,17 +533,36 @@ def update_citiz_plot(spec_name): # Обновляет график с числ�
 
     return fig
 
-@callback(
-    Output('gender_plot', 'figure'),
-    [Input('spec_names', 'value')]
-)
-def update_gender_plot(spec_name): # Обновляет график с мужчинами и женщинами
 
+# @callback(
+#     Output('citiz_plot', 'figure'),
+#     [Input('spec_names', 'value')]
+# )
+# def update_citiz_plot(spec_name): # Обновляет график с числом заявлений по гражданству кроме РФ
+#     tmp_df = get_df_by_spec_name(df, spec_name)
+#     tmp_df = tmp_df[tmp_df['citiz'] != 'РФ']
+#     counts = pd.value_counts(tmp_df['citiz'])
+#     index = counts.index[::-1]
+#     values = counts.values[::-1]
+
+#     tmp_df = pd.DataFrame(data={'Гражданство': index, 'Количество поступающих': values})
+
+#     fig = px.bar(data_frame=tmp_df, y='Гражданство', x='Количество поступающих', orientation='h')
+
+#     fig.update_layout(
+#         yaxis_title='Гражданство',
+#         xaxis_title="Количество поступающих"
+#     )
+
+#     return fig
+
+def get_gender_plot(spec_name):
+    df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
 
-    counts = pd.value_counts(tmp_df['abGen'])
+    counts = pd.value_counts(tmp_df['gender_id'])
     mens = counts.get(1, 0)
-    womens = counts.get(0, 0)
+    womens = counts.get(2, 0)
 
     fig = go.Figure(data=[
         go.Bar(x=['Мужчины'], y=[mens], name='Мужчины'),
@@ -497,5 +571,25 @@ def update_gender_plot(spec_name): # Обновляет график с мужч
     )
 
     return fig
+
+# @callback(
+#     Output('gender_plot', 'figure'),
+#     [Input('spec_names', 'value')]
+# )
+# def update_gender_plot(spec_name): # Обновляет график с мужчинами и женщинами
+
+#     tmp_df = get_df_by_spec_name(df, spec_name)
+
+#     counts = pd.value_counts(tmp_df['gender_id'])
+#     mens = counts.get(1, 0)
+#     womens = counts.get(2, 0)
+
+#     fig = go.Figure(data=[
+#         go.Bar(x=['Мужчины'], y=[mens], name='Мужчины'),
+#         go.Bar(x=['Женщины'], y=[womens], name='Женщины')
+#     ]
+#     )
+
+#     return fig
 
 
