@@ -80,7 +80,7 @@ def get_edu_level_by_code(code):
 
 def sort_by_edu_level(grouped):
     grouped['edu_level_code_num'] = grouped['spec_code'].apply(get_edu_level_by_code)
-    sorted_df = grouped.sort_values(by='edu_level_code_num', ascending=True)
+    sorted_df = grouped.sort_values(by=['edu_level_code_num', 'spec_code'], ascending=True)
     del sorted_df['edu_level_code_num']
     return sorted_df
 
@@ -148,6 +148,8 @@ def get_status_z(df):  # Отрисовывает график со статус
 
     df = df.drop_duplicates(subset=['abiturient_id'])
 
+    df.to_excel('status.xlsx')
+
     fig = px.histogram(data_frame=df, x='status_name', color='status_name')
     fig.update_layout(legend_title_text='Статус заявления')
 
@@ -184,7 +186,7 @@ daily_load = html.Div(children=[
         ])
     ]),
     html.Div('Сводка на сегодня'),
-    html.Div(id='daily_table'),
+    html.Br(),
     dbc.Row(children=[
         dbc.Col(children=[
             html.Button(id='today_report_button', children='Сформировать отчет за сегодня в Excel')
@@ -193,6 +195,9 @@ daily_load = html.Div(children=[
             html.Button(id='total_report_button', children='Сформировать отчет за все время в Excel'),
         ], width=4),
     ]),
+    html.Br(),
+    html.Div(id='daily_table'),
+    html.Br(),
     # dcc.Graph(figure=get_today_table(), id='today_table'),
     dbc.Row(children=[  # Строчка с распределением нагрузки по дням и типу подачи заявления
         dbc.Col([
@@ -249,8 +254,8 @@ status_z = dbc.Col(children=[  # График статус заявления
     dcc.Graph(figure=get_status_z(DATA_LOADER.data), id='status_z_plot')
 ])
 
-status_pz = html.Div(children=[  # Блок с графиком статуса заявления
-    html.H2('Статус заявлений'),
+status_pz = html.Div(children=[  # Блок с графиком статусов абитуриента
+    html.H2('Статус абитуриента'),
     dbc.Row(children=[status_z])
 ])
 

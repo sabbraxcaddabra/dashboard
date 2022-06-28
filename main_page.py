@@ -40,7 +40,8 @@ report_type = html.Div(children=[
     dcc.Dropdown(
         id='report_type',
         options=['Деканское', 'Ежедневный отчет'], value='Деканское', clearable=False
-    )
+    ),
+    html.Br(),
 ])
 
 app.layout = html.Div(children=[

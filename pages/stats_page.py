@@ -137,6 +137,7 @@ def get_all_specs(edu_level): # Все доступные специальнос
 control_elements = html.Div(children=[
     dcc.Interval(id='load_data_interval', interval=300e3),
     html.Button(id='download_all', children='Сформировать полный отчет в Excel'),
+    html.Br(),
     dcc.Download(id='mag'),
     dcc.Download(id='bac'),
     dcc.Download(id='spec'),
@@ -159,6 +160,7 @@ mean_point = html.Div(children=[ # Блок с распределением ср
             dcc.Dropdown(id='spec_names', clearable=False)
         ], width=6)
     ]),
+    html.Br(),
     html.Div(id='info_table'),
     html.Div(children=[
         dcc.Graph(id='kvots_plot')
@@ -181,6 +183,9 @@ dop_info = html.Div(children=[
     html.Div('*Учитывается только выбранное направление подготовки'),
     html.H3('Распределение по регионам (СПБ и ЛО приведены отдельно)'),
     html.Div(id='spb_lo', style={'marginRight': 700}),
+    html.Br(),
+    html.Div(id='hostel_needed', style={'fontSize': 22}),
+    html.Br(),
     dcc.Graph(id='regio_plot'),
     html.H3('Распределение по гражданству (кроме граждан РФ)'),
     dcc.Graph(id='citiz_plot'),
@@ -191,19 +196,20 @@ dop_info = html.Div(children=[
 layout = html.Div(children=[
     control_elements,
     mean_point,
-    agree_ratio,
+    # agree_ratio,
     dop_info
 ])
 
 @callback(
     [Output('regio_plot', 'figure'), Output('spb_lo', 'children'), Output('gender_plot', 'figure'),
-    Output('citiz_plot', 'figure'),
+    Output('citiz_plot', 'figure'), Output('hostel_needed', 'children')
     ],
     [Input('load_data_interval', 'n_intervals'), Input('spec_names', 'value')],
 )
 def update_data(n, spec_name):
     DATA_LOADER.load_data()
-    return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name)
+    return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name),\
+           get_hostel_num(spec_name)
 
 @callback(
     [Output('kvots_plot', 'figure'), Output('kvots_div', 'style')],
@@ -416,6 +422,14 @@ def agree_ratio(n, edu_level, edu_form, spec_name, bal_range): # Обновля�
 
     return fig
 
+def get_hostel_num(spec_name):
+    df = DATA_LOADER.data
+    tmp_df = get_df_by_spec_name(df, spec_name)
+    tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
+    counts = pd.value_counts(tmp_df['hostel']).get(1, 0)
+    return f'Общежитие требуется: {counts} человек'
+
+
 def get_regions_plot(spec_name):
     df = DATA_LOADER.data
     tmp_df = get_df_by_spec_name(df, spec_name)
@@ -435,7 +449,7 @@ def get_regions_plot(spec_name):
     fig.update_layout(
         yaxis_title="Регион",
         xaxis_title="Количество поступающих",
-        height=800
+        height=1200
     )
 
     return fig
