@@ -54,8 +54,10 @@ def get_total_stats(df):
     grouped = grouped.reset_index()
     grouped.insert(loc=0, column='spec_code', value='-')
     grouped.insert(loc=1, column='spec_name', value='Итого')
-    och, z = grouped.iloc[0], grouped.iloc[2]
-    grouped.iloc[0], grouped.iloc[2] = z, och
+    if grouped.shape[0] > 2:
+        och, z = grouped.iloc[0], grouped.iloc[2]
+        grouped.iloc[0], grouped.iloc[2] = z, och
+
     return grouped
 
 def day_stats(df):
@@ -100,11 +102,9 @@ def get_stats(df):
     return df_table
 
 
-def get_today_table():
+def get_today_table(df):
     today = datetime.date.today()
-    df = DATA_LOADER.data
     today_df = df[df['add_data'] == today]
-
     df_table = get_stats(today_df)
     d_table  = dash.dash_table.DataTable(
         df_table.to_dict('records'),
@@ -130,8 +130,8 @@ def get_today_table():
 
     return d_table
 
-def get_type_dropdown_options():
-    options = list(real_df['post_method'].unique())
+def get_type_dropdown_options(df):
+    options = list(df['post_method'].unique())
     return ['Все'] + options
 
 def get_min_data():
@@ -144,9 +144,8 @@ def get_max_data():
     min_data = datetime.datetime.strptime(min_data, 'yyyy-mm-dd')
     return min_data
 
-def get_status_z():  # Отрисовывает график со статусами заявлений
+def get_status_z(df):  # Отрисовывает график со статусами заявлений
 
-    df = DATA_LOADER.data
     df = df.drop_duplicates(subset=['abiturient_id'])
 
     fig = px.histogram(data_frame=df, x='status_name', color='status_name')
@@ -172,6 +171,7 @@ def get_status_p():
     return fig
 
 daily_load = html.Div(children=[
+    dcc.Interval(id='date_range_update', interval=86.4e6),
     dcc.Download(id='today_report'),
     dcc.Download(id='total_report'),
     dbc.Row(children=[
@@ -199,10 +199,10 @@ daily_load = html.Div(children=[
             html.Div('Период дней'),
             dcc.DatePickerRange(  # Выбор промежутка дат
                 id='pick_a_date',
-                start_date=real_df['add_data'].min(),
-                end_date=real_df['add_data'].max(),
-                max_date_allowed=real_df['add_data'].max(),
-                min_date_allowed=real_df['add_data'].min(),
+                start_date=DATA_LOADER.data['add_data'].min(),
+                end_date=DATA_LOADER.data['add_data'].max(),
+                max_date_allowed=DATA_LOADER.data['add_data'].max(),
+                min_date_allowed=DATA_LOADER.data['add_data'].min(),
                 display_format='Y-MM-DD'
             )
         ]),
@@ -230,7 +230,7 @@ daily_load = html.Div(children=[
             html.Div('Тип подачи заявления'),
             dcc.Dropdown(
                 id='type_dropdown',
-                options=get_type_dropdown_options(),
+                options=get_type_dropdown_options(DATA_LOADER.data),
                 value='Все',
                 searchable=False,
                 clearable=False
@@ -246,7 +246,7 @@ daily_load = html.Div(children=[
 ])
 
 status_z = dbc.Col(children=[  # График статус заявления
-    dcc.Graph(figure=get_status_z(), id='status_z_plot')
+    dcc.Graph(figure=get_status_z(DATA_LOADER.data), id='status_z_plot')
 ])
 
 status_pz = html.Div(children=[  # Блок с графиком статуса заявления
@@ -260,6 +260,9 @@ layout = html.Div(children=[
     status_pz
 ])
 
+def update_dates(df):
+    return df['add_data'].min(), df['add_data'].max()
+
 def get_df_by_fintype(tmp_df, fintype):
     # Фильтруем по признаку Бюджет / Контракт
     if fintype != 'Контракт':
@@ -268,13 +271,25 @@ def get_df_by_fintype(tmp_df, fintype):
         return tmp_df[tmp_df['fintype'] == 'С оплатой обучения']
 
 @callback(
-    [Output('load_date', 'children'), Output('status_z_plot', 'figure'), Output('daily_table', 'children')],
+    [Output('pick_a_date', 'start_date'), Output('pick_a_date', 'end_date'), Output('pick_a_date', 'max_date_allowed'),
+    Output('pick_a_date', 'min_date_allowed')],
+    [Input('date_range_update', 'n_intervals')]
+)
+def update_dates_range(n):
+    min_date, max_date = update_dates(DATA_LOADER.data)
+    return min_date, max_date, max_date, min_date
+
+@callback(
+    [Output('load_date', 'children'), Output('status_z_plot', 'figure'), Output('daily_table', 'children'),
+     Output('type_dropdown', 'options')
+     ],
     [Input('load_date_interval', 'n_intervals')]
 )
 def update_data(n):
     DATA_LOADER.load_data()
     date = datetime.datetime.strftime(DATA_LOADER.load_date, '%Y-%m-%d %H:%M')
-    return date, get_status_z(), get_today_table()
+    return date, get_status_z(DATA_LOADER.data), get_today_table(DATA_LOADER.data),\
+           get_type_dropdown_options(DATA_LOADER.data)
 
 def get_load_figure(counts, color, fig_type='not_cum'):
 
@@ -329,7 +344,7 @@ def plot_daily_load(n, start, end, post_type, fintype):
     start = datetime.datetime.strptime(start, '%Y-%m-%d').date()
     end = datetime.datetime.strptime(end, '%Y-%m-%d').date()
 
-    real_df = DATA_LOADER.data
+    real_df = DATA_LOADER.load_data()
     if fintype != 'Все':
         real_df = get_df_by_fintype(real_df, fintype)
 
