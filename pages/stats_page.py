@@ -48,7 +48,7 @@ TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.jso
 
 df = pd.read_excel(DATA_FILE)
 
-real_df = DATA_LOADER.load_data()
+real_df = DATA_LOADER.load_data
 
 DEFAULT_DICT = {'spec_code': '00.00.00',
    'spec_name': '-',
@@ -167,6 +167,7 @@ mean_point = html.Div(children=[ # Блок с распределением ср
     ], id='kvots_div'),
     html.H3('Распределение по баллам'),
     html.Div('*С учетом выбранных настроек'),
+    html.Div('**Для магистратуры указан общий балл'),
     html.H5('Диапазон баллов'),
     dcc.RangeSlider(40, 100, 5, value=[50, 100], id='bal_range'),
     dcc.Graph(id='mean_point_plot')
@@ -205,7 +206,7 @@ layout = html.Div(children=[
     [Input('load_data_interval', 'n_intervals'), Input('spec_names', 'value')],
 )
 def update_data(n, spec_name):
-    DATA_LOADER.load_data()
+    DATA_LOADER.load_data
     return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name)
 
 @callback(

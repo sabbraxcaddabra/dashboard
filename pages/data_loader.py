@@ -124,10 +124,15 @@ class DataLoader(DailyDataLoader):
         WHERE IF(edu_level_id != 2, IF(disc_point1 = 0 OR disc_point1 IS NULL OR disc_point2 = 0 OR disc_point2 IS NULL OR disc_point3 = 0 OR disc_point3 IS NULL, false, true), IF(disc_point1 = 0 OR disc_point1 IS NULL, false, true))
         LIMIT 0, 100000;
         '''
+    def get_mean_point(self, edu_level, disc_point1, disc_point2, disc_point3):
+        if edu_level == 'Магистратура':
+            return disc_point1
+        else:
+            return disc_point1+disc_point2+disc_point3
 
     def load_data(self) -> pd.DataFrame:
         super(DataLoader, self).load_data()
-        self._data['point_mean'] = (self._data['disc_point1'] + self._data['disc_point2'] + self._data['disc_point3']) / 3
+        self._data['point_mean'] = self._data.apply(lambda row: self.get_mean_point(row['edu_level'], row['disc_point1'], row['disc_point2'], row['disc_point3']), axis=1)
         return self.data
 
 
