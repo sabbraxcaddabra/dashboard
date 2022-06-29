@@ -22,6 +22,8 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_ca
 
 server = app.server
 
+app.title = 'Статистика ОИАС'
+
 page_header = dbc.Row(children=[ # Заголовочная строка с заголовком и текущем временем
         dbc.Col(
             html.Img(src='https://priem.voenmeh.ru/d/sayt_logo.png'), width=2

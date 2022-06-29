@@ -184,8 +184,6 @@ dop_info = html.Div(children=[
     html.H3('Распределение по регионам (СПБ и ЛО приведены отдельно)'),
     html.Div(id='spb_lo', style={'marginRight': 700}),
     html.Br(),
-    html.Div(id='hostel_needed', style={'fontSize': 22}),
-    html.Br(),
     dcc.Graph(id='regio_plot'),
     html.H3('Распределение по гражданству (кроме граждан РФ)'),
     dcc.Graph(id='citiz_plot'),
@@ -202,14 +200,13 @@ layout = html.Div(children=[
 
 @callback(
     [Output('regio_plot', 'figure'), Output('spb_lo', 'children'), Output('gender_plot', 'figure'),
-    Output('citiz_plot', 'figure'), Output('hostel_needed', 'children')
+    Output('citiz_plot', 'figure')
     ],
     [Input('load_data_interval', 'n_intervals'), Input('spec_names', 'value')],
 )
 def update_data(n, spec_name):
     DATA_LOADER.load_data()
-    return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name),\
-           get_hostel_num(spec_name)
+    return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name)
 
 @callback(
     [Output('kvots_plot', 'figure'), Output('kvots_div', 'style')],

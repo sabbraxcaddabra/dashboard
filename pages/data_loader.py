@@ -13,22 +13,24 @@ class DailyDataLoader:
 
     _query = """
         SELECT app.abiturient_id as abiturient_id, ab.status_id as status_id, ab_s.name as status_name, side.gender_id as gender_id, gender.name as gender_name, side.hostel as hostel, region.id as region_id,
-        CASE
-            WHEN region.typename = 'г' OR region.typename = 'Респ' THEN CONCAT(region.typename, '. ', region.name)
-            ELSE CONCAT(region.name, ' ', region.typename, '.')
-        END as region_name
-        , country.id as country_id, country.name as country_name, spec.id as spec_id, spec.name as spec_name, spec.code as spec_code, spec.level_id as edu_level_id, el.name as edu_level, 
-        app.fintype_id as fintype_id, fin.name as fintype, app.eduform_id as edu_form_id, edu.name as edu_form, side.post_method_id as post_method_id, pm.name as post_method, app.add_time as add_data, ed.original as original
-        FROM application as app JOIN specialty as spec ON spec.id = app.specialty_id
-            JOIN edulevel as el ON el.id = spec.level_id JOIN fintype as fin ON fin.id = app.fintype_id
-            JOIN eduform as edu ON edu.id = app.eduform_id JOIN side_info as side ON side.abiturient_id = app.abiturient_id
-            JOIN post_method as pm ON pm.id = side.post_method_id JOIN edu_doc as ed ON ed.abiturient_id = app.abiturient_id
-            JOIN abiturient as ab ON ab.id = app.abiturient_id JOIN abiturient_status as ab_s ON ab_s.id = ab.status_id
-        JOIN address as ad ON ad.abiturient_id = ab.id LEFT JOIN region ON region.id = ad.region_id JOIN identity_doc as iden ON iden.abiturient_id = ab.id
-            JOIN country ON country.id = iden.citizenship_id JOIN gender ON gender.id = side.gender_id
-        WHERE side.campaign_id != 3 AND ad.type_id = 1 AND ad.deleted_at IS NULL AND iden.status != 0
-        ORDER BY add_data DESC, spec_id
-        LIMIT 0, 100000;
+                CASE
+                    WHEN region.typename = 'г' OR region.typename = 'Респ' THEN CONCAT(region.typename, '. ', region.name)
+                    ELSE CONCAT(region.name, ' ', region.typename, '.')
+                END as region_name
+                , country.id as country_id, country.name as country_name, spec.id as spec_id, spec.name as spec_name, spec.code as spec_code, spec.level_id as edu_level_id, el.name as edu_level, 
+                app.fintype_id as fintype_id, fin.name as fintype, app.eduform_id as edu_form_id, edu.name as edu_form, side.post_method_id as post_method_id, 
+                pm.name as post_method, app.add_time as add_data, ed.original as original, if(consent.application_id = app.id and consent.deleted_at is null, 1, 0) as agree
+                FROM application as app JOIN specialty as spec ON spec.id = app.specialty_id
+                    JOIN edulevel as el ON el.id = spec.level_id JOIN fintype as fin ON fin.id = app.fintype_id
+                    JOIN eduform as edu ON edu.id = app.eduform_id JOIN side_info as side ON side.abiturient_id = app.abiturient_id
+                    JOIN post_method as pm ON pm.id = side.post_method_id JOIN edu_doc as ed ON ed.abiturient_id = app.abiturient_id
+                    JOIN abiturient as ab ON ab.id = app.abiturient_id JOIN abiturient_status as ab_s ON ab_s.id = ab.status_id
+                JOIN address as ad ON ad.abiturient_id = ab.id LEFT JOIN region ON region.id = ad.region_id JOIN identity_doc as iden ON iden.abiturient_id = ab.id
+                    JOIN country ON country.id = iden.citizenship_id JOIN gender ON gender.id = side.gender_id
+                    left join consent on consent.abiturient_id = app.abiturient_id
+                WHERE side.campaign_id != 3 AND ad.type_id = 1 AND ad.deleted_at IS NULL AND iden.status != 0
+                ORDER BY add_data DESC, spec_id
+                LIMIT 0, 100000;
         """
 
     def load_data(self) -> pd.DataFrame:
@@ -132,7 +134,7 @@ class DataLoader(DailyDataLoader):
 if __name__ == '__main__':
     import time
 
-    DATA_LOADER = DataLoader()
+    DATA_LOADER = DailyDataLoader()
     # for i in range(10):
     #     DATA_LOADER.load_data()
     #     time.sleep(60)

@@ -262,6 +262,9 @@ status_pz = html.Div(children=[  # Блок с графиком статусов
 layout = html.Div(children=[
     html.H2('Распределение нагрузки по дням'),
     daily_load,
+    html.Br(),
+    html.Div(id='hostel_needed', style={'fontSize': 22}),
+    html.Br(),
     status_pz
 ])
 
@@ -275,6 +278,14 @@ def get_df_by_fintype(tmp_df, fintype):
     else:
         return tmp_df[tmp_df['fintype'] == 'С оплатой обучения']
 
+def get_df_by_app_type(df, app_type):
+    if app_type == 'Заявление с согласием':
+        df = df[df['agree'] == 1]
+    elif app_type =='Заявление с оригиналом':
+        df = df[df['original'] == 1]
+
+    return df
+
 @callback(
     [Output('pick_a_date', 'start_date'), Output('pick_a_date', 'end_date'), Output('pick_a_date', 'max_date_allowed'),
     Output('pick_a_date', 'min_date_allowed')],
@@ -284,9 +295,14 @@ def update_dates_range(n):
     min_date, max_date = update_dates(DATA_LOADER.data)
     return min_date, max_date, max_date, min_date
 
+def get_hostel_num(df):
+    tmp_df = df.drop_duplicates(subset='abiturient_id')
+    counts = pd.value_counts(tmp_df['hostel']).get(1, 0)
+    return f'Общежитие требуется: {counts} человек'
+
 @callback(
     [Output('load_date', 'children'), Output('status_z_plot', 'figure'), Output('daily_table', 'children'),
-     Output('type_dropdown', 'options')
+     Output('type_dropdown', 'options'), Output('hostel_needed', 'children')
      ],
     [Input('load_date_interval', 'n_intervals')]
 )
@@ -294,7 +310,7 @@ def update_data(n):
     DATA_LOADER.load_data()
     date = datetime.datetime.strftime(DATA_LOADER.load_date, '%Y-%m-%d %H:%M')
     return date, get_status_z(DATA_LOADER.data), get_today_table(DATA_LOADER.data),\
-           get_type_dropdown_options(DATA_LOADER.data)
+           get_type_dropdown_options(DATA_LOADER.data), get_hostel_num(DATA_LOADER.data)
 
 def get_load_figure(counts, color, fig_type='not_cum'):
 
@@ -336,9 +352,10 @@ def get_load_figure(counts, color, fig_type='not_cum'):
 
 @callback(
     [Output('daily_load_plot', 'figure'), Output('daily_load_cum_plot', 'figure')],
-    [Input("load_date_interval", 'n_intervals'), Input("pick_a_date", "start_date"), Input("pick_a_date", "end_date"), Input('type_dropdown', 'value'), Input('type_f_dropdown', 'value')]
+    [Input("load_date_interval", 'n_intervals'), Input("pick_a_date", "start_date"), Input("pick_a_date", "end_date"),
+     Input('type_dropdown', 'value'), Input('type_z_dropdown', 'value'), Input('type_f_dropdown', 'value')]
 )
-def plot_daily_load(n, start, end, post_type, fintype):
+def plot_daily_load(n, start, end, post_type, app_type, fintype):
     '''
     Функция отрисовывает график нагрузки по дням
     :param start: Начало периода
@@ -349,14 +366,16 @@ def plot_daily_load(n, start, end, post_type, fintype):
     start = datetime.datetime.strptime(start, '%Y-%m-%d').date()
     end = datetime.datetime.strptime(end, '%Y-%m-%d').date()
 
-    real_df = DATA_LOADER.load_data()
+    df = DATA_LOADER.load_data()
     if fintype != 'Все':
-        real_df = get_df_by_fintype(real_df, fintype)
+        df = get_df_by_fintype(df, fintype)
+    if app_type != 'Все':
+        df = get_df_by_app_type(df, app_type)
 
-    above = real_df['add_data'] >= start
-    below = real_df['add_data'] <= end
+    above = df['add_data'] >= start
+    below = df['add_data'] <= end
 
-    tmp_df = real_df.loc[above & below]
+    tmp_df = df.loc[above & below]
     
     if post_type != 'Все':
         tmp_df = tmp_df[tmp_df['post_method'] == post_type]
