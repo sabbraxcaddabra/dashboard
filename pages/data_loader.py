@@ -128,7 +128,7 @@ class DataLoader(DailyDataLoader):
         if edu_level == 'Магистратура':
             return disc_point1
         else:
-            return disc_point1+disc_point2+disc_point3
+            return (disc_point1+disc_point2+disc_point3) / 3
 
     def load_data(self) -> pd.DataFrame:
         super(DataLoader, self).load_data()
@@ -139,7 +139,9 @@ class DataLoader(DailyDataLoader):
 if __name__ == '__main__':
     import time
 
-    DATA_LOADER = DailyDataLoader()
+    DAILY_DATA_LOADER = DailyDataLoader()
+    DATA_LOADER = DataLoader()
+
     # for i in range(10):
     #     DATA_LOADER.load_data()
     #     time.sleep(60)

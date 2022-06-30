@@ -10,6 +10,7 @@ import dash_bootstrap_components as dbc
 
 import plotly.express as px
 import plotly.graph_objects as go
+import openpyxl
 
 from getpass import getpass
 from sqlalchemy import create_engine
@@ -31,6 +32,24 @@ new_df = pd.read_excel(DATA_FILE)
 df = pd.read_excel(NEW_DATA_FILE)
 
 real_df = DATA_LOADER.load_data()
+
+def autofit_columns(filepath):
+
+    wb = openpyxl.load_workbook(filepath)
+    sheet = wb['Sheet1']
+
+    dims = {}
+
+    rows = list(sheet.rows)
+    for row in rows:
+        for cell in row:
+            if cell.value:
+                dims[cell.column_letter] = max((dims.get(cell.column_letter, 0), len(str(cell.value)) * 1.5))
+
+    for col, value in dims.items():
+        sheet.column_dimensions[col].width = value
+
+    wb.save(filepath)
 
 def get_budget(series):
     tmp_series = series[series != 'С оплатой обучения']
@@ -398,7 +417,9 @@ def download_today(n_clics):
     df = DATA_LOADER.data
     today_df = df[df['add_data'] == today]
     df_table = get_stats(today_df)
-    df_table.to_excel(f'{today}.xlsx')
+    df_table.to_excel(f'{today}.xlsx', index=False)
+    report_file = os.path.abspath(os.path.join(HERE, "..", f'{today}.xlsx'))
+    autofit_columns(report_file)
     return dcc.send_file(f'{today}.xlsx')
 
 @callback(
@@ -409,5 +430,7 @@ def download_total(n_clics):
     today = datetime.date.today()
     df = DATA_LOADER.data
     df_table = get_stats(df)
-    df_table.to_excel(f'{today}_total.xlsx')
+    df_table.to_excel(f'{today}_total.xlsx', index=False)
+    report_file = os.path.abspath(os.path.join(HERE, "..", f'{today}_total.xlsx'))
+    autofit_columns(report_file)
     return dcc.send_file(f'{today}_total.xlsx')
