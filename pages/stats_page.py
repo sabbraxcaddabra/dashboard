@@ -267,6 +267,8 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     [Input("download_all", "n_clicks")], prevent_initial_call=True
 )
 def download_all(n_clicks): # Формирует и скачивает все эксель файлы с отчетом по текущей выгрузке из базы
+    df = DATA_LOADER.data
+
     for edu_level in ('Бакалавриат', 'Специалитет', 'Магистратура'):
         header = BAC_SPEC_HEADER if edu_level != 'Магистратура' else HEADER
         tmp_df = get_df_by_edu_level(df, edu_level)
