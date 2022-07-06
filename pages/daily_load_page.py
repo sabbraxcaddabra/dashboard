@@ -66,7 +66,7 @@ def count_orig(series):
 def get_total_stats(df):
     grouped = df.groupby('edu_form').agg(
         spec_name_count=('spec_name', lambda series: series.shape[0]),
-        original_count=('original', count_orig),
+        original_count=('orig_and_agree', count_orig),
         budget=('fintype', get_budget),
         kontract=('fintype', get_contract)
     )
@@ -82,7 +82,7 @@ def get_total_stats(df):
 def day_stats(df):
     grouped = df.groupby(['spec_code', 'spec_name', 'edu_form']).agg(
     spec_name_count=('spec_name', 'count'),
-    original_count=('original', count_orig),
+    original_count=('orig_and_agree', count_orig),
     budget=('fintype', get_budget),
     kontract=('fintype', get_contract)
     )
@@ -103,7 +103,11 @@ def sort_by_edu_level(grouped):
     del sorted_df['edu_level_code_num']
     return sorted_df
 
+def get_ok_status(df):
+    return df[df['status_id'] == 2]
+
 def get_stats(df):
+    df = get_ok_status(df)
     grouped = day_stats(df)
     df_table = sort_by_edu_level(grouped)
     total = get_total_stats(df)
@@ -204,7 +208,7 @@ daily_load = html.Div(children=[
             dcc.Interval(id='load_date_interval', interval=300e3)
         ])
     ]),
-    html.Div('Сводка на сегодня'),
+    html.Div('Сводка на сегодня (* учитываются только заявления в статусе проверено)'),
     html.Br(),
     dbc.Row(children=[
         dbc.Col(children=[
@@ -278,11 +282,18 @@ status_pz = html.Div(children=[  # Блок с графиком статусов
     dbc.Row(children=[status_z])
 ])
 
+check_needed = html.Div(children=[
+    dcc.Download(id='check_needed'),
+    html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')
+])
+
 layout = html.Div(children=[
     html.H2('Распределение нагрузки по дням'),
     daily_load,
     html.Br(),
     html.Div(id='hostel_needed', style={'fontSize': 22}),
+    html.Br(),
+    check_needed,
     html.Br(),
     status_pz
 ])
@@ -304,6 +315,32 @@ def get_df_by_app_type(df, app_type):
         df = df[df['original'] == 1]
 
     return df
+
+
+@callback(
+    Output('check_needed', 'data'),
+    [Input('check_needed_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_arm(n_clicks):
+    engine = create_engine(
+            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+        )
+
+    query = '''
+    select
+      ab.id
+    from 
+      abiturient as ab
+    where
+      ab.status_id = 4 and ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock)
+      and if((select created_at from abiturient_progress where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
+        (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false)
+    '''
+
+    connection = engine.connect()
+    df = pd.read_sql(query, connection)
+    connection.close()
+    return dcc.send_data_frame(df.to_excel, "Для_проверки_АРМ.xlsx", sheet_name="Sheet_name_1")
 
 @callback(
     [Output('pick_a_date', 'start_date'), Output('pick_a_date', 'end_date'), Output('pick_a_date', 'max_date_allowed'),
@@ -331,7 +368,7 @@ def update_data(n):
     return date, get_status_z(DATA_LOADER.data), get_today_table(DATA_LOADER.data),\
            get_type_dropdown_options(DATA_LOADER.data), get_hostel_num(DATA_LOADER.data)
 
-def get_load_figure(counts, color, fig_type='not_cum'):
+def get_load_figure(counts, people_counts, color, people_color, fig_type='not_cum'):
 
     locate_date = {  # Переименование месяца в дате
         '03': 'Март',
@@ -344,23 +381,39 @@ def get_load_figure(counts, color, fig_type='not_cum'):
     counts = counts.sort_index()
 
     date = counts.index
+    date_people = people_counts.index
+
     if fig_type == 'cum':
 
         values = counts.values.cumsum()
-        title_text_yaxis = 'Суммарное число заявлений'
+        people_values = people_counts.cumsum()
+        title_text_yaxis = 'Суммарное число заявлений / людей'
     else:
+        people_values = people_counts.values
         values = counts.values
-        title_text_yaxis = 'Число заявлений'
+        title_text_yaxis = 'Число заявлений / людей'
 
 
     new_date = []
+    new_date_people = []
 
     for dat in date:
         new_dat = str(dat).split('-')
         new_dat[1] = locate_date[new_dat[1]]
         new_date.append('-'.join(new_dat))
 
-    fig = px.area(x=new_date, y=values, color_discrete_sequence=[color])
+    for dat in date_people:
+        new_dat = str(dat).split('-')
+        new_dat[1] = locate_date[new_dat[1]]
+        new_date_people.append('-'.join(new_dat))
+
+
+    fig = go.Figure()
+    fig.add_traces(data=[
+        go.Scatter(x=new_date, y=values, name='Заявления', mode='none', fill='tozeroy', fillcolor=color),
+        go.Scatter(x=new_date_people, y=people_values, name='Люди', fill='tozeroy', fillcolor=people_color)
+    ]
+    )
     fig.update_xaxes(title_text='Дата')
     fig.update_yaxes(title_text=title_text_yaxis)
 
@@ -402,8 +455,13 @@ def plot_daily_load(n, start, end, post_type, app_type, fintype):
     counts = pd.value_counts(tmp_df['add_data'])
     counts = counts.sort_index()
 
-    fig = get_load_figure(counts, '#08F235', 'not_cum')
-    fig_cum = get_load_figure(counts, '#0839F2', 'cum')
+    tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
+
+    people_counts = pd.value_counts(tmp_df['add_data'])
+    people_counts = people_counts.sort_index()
+
+    fig = get_load_figure(counts, people_counts, '#00CC00', '#FF8500','not_cum')
+    fig_cum = get_load_figure(counts, people_counts, '#0776A0', '#FF8500', 'cum')
 
     return fig, fig_cum
 
