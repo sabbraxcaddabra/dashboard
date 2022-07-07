@@ -28,17 +28,17 @@ HEADER = [
     {'name': ('Направление подготовки, специальность, магистерская программа', 'Название'), 'id': 'spec_name'},
     {'name': ('Количество принятых заявлений', 'Бюджет'), 'id': 'application_b'},
     {'name': ('Количество принятых заявлений', 'Контракт'), 'id': 'application_k'},
-    {'name': ('Оригиналы документа об образовании', 'Бюджет'), 'id': 'orig_b'},
-    {'name': ('Оригиналы документа об образовании', 'Ср.балл'), 'id': 'orig_b_ball'},
-    {'name': ('Оригиналы документа об образовании', 'Контракт'), 'id': 'orig_k'},
-    {'name': ('Оригиналы документа об образовании', 'Ср.балл '), 'id': 'orig_k_ball'},
-    {'name': ('Оригиналы документа об образовании', 'Основные места'), 'id': 'orig_osn'},
-    {'name': ('Оригиналы документа об образовании', 'Целевая квота'), 'id': 'orig_celo'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Бюджет'), 'id': 'orig_b'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Ср.балл'), 'id': 'orig_b_ball'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Контракт'), 'id': 'orig_k'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Ср.балл '), 'id': 'orig_k_ball'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Основные места'), 'id': 'orig_osn'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Целевая квота'), 'id': 'orig_celo'},
 ]
 
 BAC_SPEC_HEADER = HEADER + [
-    {'name': ('Оригиналы документа об образовании', 'Особая квота'), 'id': 'orig_os'},
-    {'name': ('Оригиналы документа об образовании', 'Специальная квота'), 'id': 'orig_spec'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Особая квота'), 'id': 'orig_os'},
+    {'name': ('Согласий при наличии оригинала (договора)', 'Специальная квота'), 'id': 'orig_spec'},
 ]
 
 HERE = os.path.dirname(__file__)
@@ -207,7 +207,7 @@ layout = html.Div(children=[
     [Input('load_data_interval', 'n_intervals'), Input('spec_names', 'value')],
 )
 def update_data(n, spec_name):
-    DATA_LOADER.load_data
+    DATA_LOADER.load_data()
     return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name)
 
 @callback(
@@ -232,7 +232,7 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     tmp_df = get_df_by_spec_name(tmp_df, spec_name) # Отбираем по специальности
     applications_b = get_df_by_fintype(tmp_df, 'Бюджет').shape[0] # Кол-во заявлений бюджет
     applications_k = get_df_by_fintype(tmp_df, 'Контракт').shape[0] # Кол-во заявлений контракт
-    tmp_df = tmp_df[tmp_df['original'] == 1] # Отбираем только заявления с подлинником
+    tmp_df = tmp_df[tmp_df['orig_and_agree'] == 1] # Отбираем только заявлений с согласием и подлинником (или договором)
     # print(tmp_df.loc[:, ['abiturient_id', 'fintype', 'point_mean']])
     mean_bal_b = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean'].mean() # Средний балл бюджет
     mean_bal_k = get_df_by_fintype(tmp_df, 'Контракт')['point_mean'].mean() # Средний балл контракт
@@ -446,11 +446,12 @@ def get_regions_plot(spec_name):
     tmp_df = pd.DataFrame(data={'Регион': index, 'Количество поступающих': values})
 
     fig = px.bar(data_frame=tmp_df, y='Регион', x='Количество поступающих', orientation='h')
+    regio_width = 30
 
     fig.update_layout(
         yaxis_title="Регион",
         xaxis_title="Количество поступающих",
-        height=1200
+        height=index.shape[0] * regio_width
     )
 
     return fig
