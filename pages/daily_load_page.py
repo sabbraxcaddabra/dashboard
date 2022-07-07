@@ -284,7 +284,11 @@ status_pz = html.Div(children=[  # Блок с графиком статусов
 
 check_needed = html.Div(children=[
     dcc.Download(id='check_needed'),
-    html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')
+    dcc.Download(id='check_ind_needed'),
+    dbc.Row(children=[
+        dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')], width=3),
+        dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки ИД', id='check_ind_needed_button')], width=3),
+    ]),
 ])
 
 layout = html.Div(children=[
@@ -315,6 +319,31 @@ def get_df_by_app_type(df, app_type):
         df = df[df['original'] == 1]
 
     return df
+
+@callback(
+    Output('check_ind_needed', 'data'),
+    [Input('check_ind_needed_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_ind_d(n_clicks):
+    engine = create_engine(
+            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+        )
+
+    query = '''
+    select
+      abiturient.id
+    from 
+      abiturient
+    where
+      abiturient.status_id = 2 and abiturient.id in 
+        (select achievement.abiturient_id from achievement where achievement.deleted_at is null and achievement.value = 0);
+    '''
+
+    connection = engine.connect()
+    df = pd.read_sql(query, connection)
+    connection.close()
+    return dcc.send_data_frame(df.to_excel, "Для_проверки_ИД.xlsx", sheet_name="Sheet_name_1")
+
 
 
 @callback(
@@ -477,7 +506,7 @@ def download_today(n_clics):
     df_table = get_stats(today_df)
     df_table.to_excel(f'{today}.xlsx', index=False)
     report_file = os.path.abspath(os.path.join(HERE, "..", f'{today}.xlsx'))
-    autofit_columns(report_file)
+    autofit_columns(f'{today}.xlsx')
     return dcc.send_file(f'{today}.xlsx')
 
 @callback(
@@ -490,5 +519,6 @@ def download_total(n_clics):
     df_table = get_stats(df)
     df_table.to_excel(f'{today}_total.xlsx', index=False)
     report_file = os.path.abspath(os.path.join(HERE, "..", f'{today}_total.xlsx'))
-    autofit_columns(report_file)
+    autofit_columns(f'{today}_total.xlsx')
+    # autofit_columns(report_file)
     return dcc.send_file(f'{today}_total.xlsx')
