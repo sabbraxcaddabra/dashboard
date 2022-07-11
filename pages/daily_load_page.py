@@ -285,9 +285,11 @@ status_pz = html.Div(children=[  # Блок с графиком статусов
 check_needed = html.Div(children=[
     dcc.Download(id='check_needed'),
     dcc.Download(id='check_ind_needed'),
+    dcc.Download(id='check_id_last_changes'),
     dbc.Row(children=[
         dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')], width=3),
         dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки ИД', id='check_ind_needed_button')], width=3),
+        dbc.Col(children=[html.Button('Выгрузить номера дел с последним изменением в ЛК', id='check_id_last_change_button')], width=3),
     ]),
 ])
 
@@ -343,6 +345,31 @@ def check_ind_d(n_clicks):
     df = pd.read_sql(query, connection)
     connection.close()
     return dcc.send_data_frame(df.to_excel, "Для_проверки_ИД.xlsx", sheet_name="Sheet_name_1")
+
+@callback(
+    Output('check_id_last_changes', 'data'),
+    [Input('check_id_last_change_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_id_last_change(n_clicks):
+    engine = create_engine(
+            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+        )
+
+    query = '''
+        select
+      ab.id
+    from 
+      abiturient as ab
+    where
+      ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock)
+      and if((select created_at from abiturient_progress where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
+        (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false);
+    '''
+
+    connection = engine.connect()
+    df = pd.read_sql(query, connection)
+    connection.close()
+    return dcc.send_data_frame(df.to_excel, "Последнее_изменение_ЛК.xlsx", sheet_name="Sheet_name_1")
 
 
 
