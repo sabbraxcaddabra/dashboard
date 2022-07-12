@@ -454,9 +454,11 @@ def get_regions_plot(edu_level, spec_name):
     values = counts.values
 
     tmp_df = pd.DataFrame(data={'regio': index, 'counts': values})
-    tmp_df = tmp_df.sort_values(by='counts', ascending=False)
+    tmp_df = tmp_df.sort_values(by='counts', ascending=False, ignore_index=True)
 
-    tmp_df = tmp_df.iloc[:10, :]
+
+    if tmp_df.shape[0] > 10:
+        tmp_df = tmp_df.iloc[:10, :]
 
     tmp_df = tmp_df.rename(columns={'regio': 'Регион', 'counts': 'Количество поступающих'})
 
