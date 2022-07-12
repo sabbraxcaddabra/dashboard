@@ -98,7 +98,7 @@ class DataLoader(DailyDataLoader):
             eduform.id as forId, eduform.name as forN, post_method.id as posId, post_method.name as posN, application.add_time as tim,
             if(abiturient.id in (select edu_doc.abiturient_id from edu_doc where edu_doc.deleted_at is null and edu_doc.original = 1), 1, 0) as org,
             if(concat(abiturient.id, application.id) in (select concat(consent.abiturient_id, consent.application_id) from consent where consent.deleted_at is null), 1, 0) as agr,
-            if(concat(abiturient.id, application.id) in (select concat(abiturient_id, application_id) from contract_info), 1, 0) as dog,
+            if(concat(abiturient.id, application.id) in (select concat(abiturient_id, application_id) from contract_info where status_id >= 6), 1, 0) as dog,
           (select points from abiturient_exam where id = application_exam_cache.exam1_id) as ex1,
             (select points from abiturient_exam where id = application_exam_cache.exam2_id) as ex2,
             (select points from abiturient_exam where id = application_exam_cache.exam3_id) as ex3
