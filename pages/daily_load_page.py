@@ -1,4 +1,5 @@
 import dash
+import numpy as np
 from dash import dcc
 from dash import Input, Output, callback
 from dash import html
@@ -286,11 +287,16 @@ check_needed = html.Div(children=[
     dcc.Download(id='check_needed'),
     dcc.Download(id='check_ind_needed'),
     dcc.Download(id='check_id_last_changes'),
+    dcc.Download(id='check_id_not_orig_or_agree'),
     dbc.Row(children=[
         dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')], width=3),
         dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки ИД', id='check_ind_needed_button')], width=3),
-        dbc.Col(children=[html.Button('Выгрузить номера дел с последним изменением в ЛК', id='check_id_last_change_button')], width=3),
     ]),
+    html.Br(),
+    dbc.Row(children=[
+        dbc.Col(children=[html.Button('Выгрузить номера дел с последним изменением в ЛК', id='check_id_last_change_button')], width=3),
+        dbc.Col(children=[html.Button('Выгрузить номера дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button')], width=3),
+    ])
 ])
 
 layout = html.Div(children=[
@@ -345,6 +351,38 @@ def check_ind_d(n_clicks):
     df = pd.read_sql(query, connection)
     connection.close()
     return dcc.send_data_frame(df.to_excel, "Для_проверки_ИД.xlsx", sheet_name="Sheet_name_1")
+
+@callback(
+    Output('check_id_not_orig_or_agree', 'data'),
+    [Input('check_id_not_orig_or_agree_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_id_not_orig_or_agree(n_clicks):
+
+    engine = create_engine(
+            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+        )
+
+    query = '''
+        select
+          allo.abid as 'Номер дела',
+            allo.orig as 'Оригинал',
+            allo.sogl as 'Согласие'
+            from (select
+          ab.id as abId,
+          if(ab.id in (select abiturient_id from edu_doc where deleted_at is null and original = 1), 1, 0) as orig,
+            ifnull((select specialty.name from consent join application on application.id = consent.application_id 
+            join specialty on specialty.id = application.specialty_id where consent.deleted_at is null and consent.abiturient_id = ab.id and application.fintype_id not in (2, 4)), '-') as sogl
+        from
+          abiturient as ab) as allo
+        where
+          (allo.orig != 1 and allo.sogl != '-') or (allo.orig = 1 and allo.sogl = '-');
+    '''
+
+    connection = engine.connect()
+    df = pd.read_sql(query, connection)
+    connection.close()
+    return dcc.send_data_frame(df.to_excel, "Номера дел с согласием без оригинала / оригиналом без согласия.xlsx", sheet_name="Sheet_name_1")
+
 
 @callback(
     Output('check_id_last_changes', 'data'),

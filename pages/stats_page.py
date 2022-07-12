@@ -465,7 +465,6 @@ def get_regions_plot(edu_level, spec_name):
     fig = px.bar(tmp_df, y='Регион', x='Количество поступающих', orientation='h',
                  category_orders={'Регион': tmp_df['Регион'][::-1]}
                  )
-    regio_width = 40
 
     fig.update_layout(
         title='10 Наиболее популярных регионов',
