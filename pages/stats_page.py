@@ -204,11 +204,11 @@ layout = html.Div(children=[
     [Output('regio_plot', 'figure'), Output('spb_lo', 'children'), Output('gender_plot', 'figure'),
     Output('citiz_plot', 'figure')
     ],
-    [Input('load_data_interval', 'n_intervals'), Input('spec_names', 'value')],
+    [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('spec_names', 'value')],
 )
-def update_data(n, spec_name):
+def update_data(n, edu_level, spec_name):
     DATA_LOADER.load_data()
-    return get_regions_plot(spec_name), get_spb_lo(spec_name), get_gender_plot(spec_name), get_citiz_plot(spec_name)
+    return get_regions_plot(edu_level, spec_name), get_spb_lo(edu_level, spec_name), get_gender_plot(edu_level, spec_name), get_citiz_plot(edu_level, spec_name)
 
 @callback(
     [Output('kvots_plot', 'figure'), Output('kvots_div', 'style')],
@@ -234,8 +234,14 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     applications_k = get_df_by_fintype(tmp_df, 'Контракт').shape[0] # Кол-во заявлений контракт
     tmp_df = tmp_df[tmp_df['orig_and_agree'] == 1] # Отбираем только заявлений с согласием и подлинником (или договором)
     # print(tmp_df.loc[:, ['abiturient_id', 'fintype', 'point_mean']])
-    mean_bal_b = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean'].mean() # Средний балл бюджет
-    mean_bal_k = get_df_by_fintype(tmp_df, 'Контракт')['point_mean'].mean() # Средний балл контракт
+
+    budget_points = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean']
+    kontract_points = get_df_by_fintype(tmp_df, 'Контракт')['point_mean']
+    mean_bal_b = budget_points[budget_points > 0].mean() # Средний балл бюджет
+    mean_bal_k = kontract_points[kontract_points > 0.].mean() # Средний балл контракт
+
+    # tmp_df = tmp_df[
+    #     tmp_df['orig_and_agree'] == 1]  # Отбираем только заявлений с согласием и подлинником (или договором)
 
     counts = pd.value_counts(tmp_df['fintype'])
 
@@ -307,7 +313,7 @@ def download_all(n_clicks): # Формирует и скачивает все э
 def get_info_table(n, edu_level, edu_form, spec_name): # Отрисовывает таблицу с информацией по выбранному уровню образования, форме обучения и названию специальности
 
     df = DATA_LOADER.data
-    df = df[df['point_mean'] > 0]
+    # df = df[df['point_mean'] > 0]
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
 
@@ -433,33 +439,44 @@ def get_hostel_num(spec_name):
     return f'Общежитие требуется: {counts} человек'
 
 
-def get_regions_plot(spec_name):
+def get_regions_plot(edu_level, spec_name):
     df = DATA_LOADER.data
+
+    df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_spec_name(df, spec_name)
 
     tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
 
-    tmp_df = tmp_df[(tmp_df['region_name'] != 'г. Санкт-Петербург') & (tmp_df['region_name'] != 'Ленинградская обл.')]
+    tmp_df = tmp_df[(tmp_df['region_name'] != 'г. Санкт-Петербург') & (tmp_df['region_name'] != 'Ленинградская обл.') & (tmp_df['region_name'] != '-')]
 
     counts = pd.value_counts(tmp_df['region_name'])
-    index = counts.index[::-1]
-    values = counts.values[::-1]
+    index = counts.index
+    values = counts.values
 
-    tmp_df = pd.DataFrame(data={'Регион': index, 'Количество поступающих': values})
+    tmp_df = pd.DataFrame(data={'regio': index, 'counts': values})
+    tmp_df = tmp_df.sort_values(by='counts', ascending=False)
 
-    fig = px.bar(data_frame=tmp_df, y='Регион', x='Количество поступающих', orientation='h')
-    regio_width = 30
+    tmp_df = tmp_df.iloc[:10, :]
+
+    tmp_df = tmp_df.rename(columns={'regio': 'Регион', 'counts': 'Количество поступающих'})
+
+    fig = px.bar(tmp_df, y='Регион', x='Количество поступающих', orientation='h',
+                 category_orders={'Регион': tmp_df['Регион'][::-1]}
+                 )
+    regio_width = 40
 
     fig.update_layout(
+        title='10 Наиболее популярных регионов',
         yaxis_title="Регион",
         xaxis_title="Количество поступающих",
-        height=index.shape[0] * regio_width
     )
 
     return fig
 
-def get_spb_lo(spec_name):
+def get_spb_lo(edu_level, spec_name):
     df = DATA_LOADER.data
+
+    df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_spec_name(df, spec_name)
 
     tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
@@ -482,8 +499,10 @@ def get_spb_lo(spec_name):
 
     return table
 
-def get_citiz_plot(spec_name):
+def get_citiz_plot(edu_level, spec_name):
     df = DATA_LOADER.data
+
+    df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_spec_name(df, spec_name)
 
     tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
@@ -504,8 +523,10 @@ def get_citiz_plot(spec_name):
 
     return fig
 
-def get_gender_plot(spec_name):
+def get_gender_plot(edu_level, spec_name):
     df = DATA_LOADER.data
+
+    df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_spec_name(df, spec_name)
 
     tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
