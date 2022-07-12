@@ -307,6 +307,7 @@ def download_all(n_clicks): # Формирует и скачивает все э
 def get_info_table(n, edu_level, edu_form, spec_name): # Отрисовывает таблицу с информацией по выбранному уровню образования, форме обучения и названию специальности
 
     df = DATA_LOADER.data
+    df = df[df['point_mean'] > 0]
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
 
@@ -382,6 +383,7 @@ def get_df_by_spec_name(tmp_df, spec_name):
 )
 def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Обновляет график с распределением баллов
     df = DATA_LOADER.data
+    df = df[df['point_mean'] > 0]
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)

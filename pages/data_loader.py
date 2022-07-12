@@ -135,7 +135,7 @@ class DataLoader(DailyDataLoader):
         df = super().load_data()
 
         df['point_mean'] = df.apply(lambda row: self.get_mean_point(row['edu_level'], row['disc_point1'], row['disc_point2'], row['disc_point3']), axis=1)
-        df = df[df['point_mean'] > 0]
+        # df = df[df['point_mean'] > 0]
         self._data = df
         self._load_date = datetime.datetime.now()
         return self.data
