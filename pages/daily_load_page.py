@@ -67,7 +67,7 @@ def count_orig(series):
 def get_total_stats(df):
     grouped = df.groupby('edu_form').agg(
         spec_name_count=('spec_name', lambda series: series.shape[0]),
-        people_count=('abiturient_id', 'nunique'),
+        # people_count=('abiturient_id', 'nunique'),
         original_count=('orig_and_agree', count_orig),
         budget=('fintype', get_budget),
         kontract=('fintype', get_contract)
@@ -84,7 +84,7 @@ def get_total_stats(df):
 def day_stats(df):
     grouped = df.groupby(['spec_code', 'spec_name', 'edu_form']).agg(
         spec_name_count=('spec_name', 'count'),
-        people_count=('abiturient_id', 'nunique'),
+        # people_count=('abiturient_id', 'nunique'),
         original_count=('orig_and_agree', count_orig),
         budget=('fintype', get_budget),
         kontract=('fintype', get_contract)
@@ -123,7 +123,7 @@ def get_stats(df):
         'kontract': 'Заявлений на контракт',
         'spec_name_count': 'Заявлений всего',
         'original_count': 'Оригиналов',
-        'people_count': 'Людей'
+        # 'people_count': 'Людей'
         }
     )
     return df_table
@@ -239,6 +239,16 @@ daily_load = html.Div(children=[
             )
         ]),
         dbc.Col(children=[
+            html.Div('Уровень образования'),
+            dcc.Dropdown(
+                id='edu_level_dropdown',
+                options=['Все', 'Бакалавриат', 'Специалитет', 'Магистратура'],
+                value='Все',
+                searchable=False,
+                clearable=False
+            )
+        ]),
+        dbc.Col(children=[
             html.Div('Тип финансирования'),
             dcc.Dropdown(
                 id='type_f_dropdown',
@@ -312,6 +322,10 @@ layout = html.Div(children=[
     html.Br(),
     status_pz
 ])
+
+def get_df_by_edu_level(tmp_df, edu_level):
+    # Фильтруем по признаку Бакалавриат / Специалитет / Магистратура
+    return tmp_df[tmp_df['edu_level'] == edu_level]
 
 def update_dates(df):
     return df['add_data'].min(), df['add_data'].max()
@@ -522,9 +536,9 @@ def get_load_figure(counts, people_counts, color, people_color, fig_type='not_cu
 @callback(
     [Output('daily_load_plot', 'figure'), Output('daily_load_cum_plot', 'figure')],
     [Input("load_date_interval", 'n_intervals'), Input("pick_a_date", "start_date"), Input("pick_a_date", "end_date"),
-     Input('type_dropdown', 'value'), Input('type_z_dropdown', 'value'), Input('type_f_dropdown', 'value')]
+     Input('type_dropdown', 'value'), Input('type_z_dropdown', 'value'), Input('type_f_dropdown', 'value'), Input('edu_level_dropdown', 'value')]
 )
-def plot_daily_load(n, start, end, post_type, app_type, fintype):
+def plot_daily_load(n, start, end, post_type, app_type, fintype, edu_level):
     '''
     Функция отрисовывает график нагрузки по дням
     :param start: Начало периода
@@ -540,6 +554,8 @@ def plot_daily_load(n, start, end, post_type, app_type, fintype):
         df = get_df_by_fintype(df, fintype)
     if app_type != 'Все':
         df = get_df_by_app_type(df, app_type)
+    if edu_level != 'Все':
+        df = get_df_by_edu_level(df, edu_level)
 
     above = df['add_data'] >= start
     below = df['add_data'] <= end
