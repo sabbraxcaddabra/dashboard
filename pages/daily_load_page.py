@@ -381,18 +381,20 @@ def check_id_not_orig_or_agree(n_clicks):
 
     query = '''
         select
-          allo.abid as 'Номер дела',
-            allo.orig as 'Оригинал',
-            allo.sogl as 'Согласие'
-            from (select
-          ab.id as abId,
-          if(ab.id in (select abiturient_id from edu_doc where deleted_at is null and original = 1), 1, 0) as orig,
-            ifnull((select specialty.name from consent join application on application.id = consent.application_id 
-            join specialty on specialty.id = application.specialty_id where consent.deleted_at is null and consent.abiturient_id = ab.id and application.fintype_id not in (2, 4)), '-') as sogl
-        from
-          abiturient as ab) as allo
-        where
-          (allo.orig != 1 and allo.sogl != '-') or (allo.orig = 1 and allo.sogl = '-');
+      allo.abid as 'Номер дела',
+        allo.orig as 'Оригинал',
+        allo.sogl as 'Согласие'
+        from (select
+      ab.id as abId,
+      if(ab.id in (select abiturient_id from edu_doc where deleted_at is null and original = 1), 1, 0) as orig,
+        ifnull((select specialty.name from consent join application on application.id = consent.application_id 
+        join specialty on specialty.id = application.specialty_id where consent.deleted_at is null and consent.abiturient_id = ab.id and application.fintype_id not in (2, 4)), '-') as sogl,
+     ifnull((select specialty.name from consent join application on application.id = consent.application_id 
+      join specialty on specialty.id = application.specialty_id where consent.deleted_at is null and consent.abiturient_id = ab.id and application.fintype_id in (2, 4)), '-') as soglP
+    from
+      abiturient as ab) as allo
+    where
+      (allo.orig != 1 and allo.sogl != '-' and allo.soglP = '-') or (allo.orig = 1 and allo.sogl = '-' and allo.soglP = '-');
     '''
 
     connection = engine.connect()
