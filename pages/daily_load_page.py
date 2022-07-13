@@ -301,12 +301,14 @@ check_needed = html.Div(children=[
     dcc.Download(id='check_ind_needed'),
     dcc.Download(id='check_id_last_changes'),
     dcc.Download(id='check_id_not_orig_or_agree'),
+    dcc.Download(id='check_os_pravo'),
     dbc.Row(children=[
         dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')], width=3),
         dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки ИД', id='check_ind_needed_button')], width=3),
     ]),
     html.Br(),
     dbc.Row(children=[
+        dbc.Col(children=[html.Button('Выгрузить номера дел с особым правом(олимпиады)', id='check_os_pravo_button')], width=3),
         dbc.Col(children=[html.Button('Выгрузить номера дел с последним изменением в ЛК', id='check_id_last_change_button')], width=3),
         dbc.Col(children=[html.Button('Выгрузить номера дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button')], width=3),
     ])
@@ -344,6 +346,28 @@ def get_df_by_app_type(df, app_type):
         df = df[df['original'] == 1]
 
     return df
+
+@callback(
+    Output('check_os_pravo', 'data'),
+    [Input('check_os_pravo_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_os_pravo(n_clicks):
+    engine = create_engine(
+            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+        )
+
+    query = '''
+        select
+     abiturient.id as 'Номер дела'
+    from
+     abiturient
+    where abiturient.id in (select abiturient_id from olymp where deleted_at is null);
+    '''
+
+    connection = engine.connect()
+    df = pd.read_sql(query, connection)
+    connection.close()
+    return dcc.send_data_frame(df.to_excel, "Для_проверки_Особого_права.xlsx", sheet_name="Sheet_name_1")
 
 @callback(
     Output('check_ind_needed', 'data'),
