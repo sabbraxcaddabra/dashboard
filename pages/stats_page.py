@@ -27,6 +27,7 @@ HEADER = [
     {'name': ('Направление подготовки, специальность, магистерская программа', 'Код'), 'id': 'spec_code'},
     {'name': ('Направление подготовки, специальность, магистерская программа', 'Название'), 'id': 'spec_name'},
     {'name': ('Количество принятых заявлений', 'Бюджет'), 'id': 'application_b'},
+    {'name': ('Количество принятых заявлений', 'Кол-во заявлений / КЦП'), 'id': 'application_b_kcp_ratio'},
     {'name': ('Количество принятых заявлений', 'Контракт'), 'id': 'application_k'},
     {'name': ('Согласий при наличии оригинала (договора)', 'Бюджет'), 'id': 'orig_b'},
     {'name': ('Согласий при наличии оригинала (договора)', 'Ср.балл'), 'id': 'orig_b_ball'},
@@ -251,12 +252,15 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     orig_os = counts.get('Особая квота', 0) # Подлинников на особую квоту
     orig_spec = counts.get('Специальная квота', 0) # Подлинников на специальную квоту
     orig_all_b = orig_osn + orig_celo + orig_os + orig_spec  # Кол-во подлинников бюджет
+    application_b_kcp_ratio = round(applications_b / kcp_dict["kcp_b_all"], 2) if kcp_dict["kcp_b_all"] != 0 else None
+
 
     spec_dict = {
         'spec_code': kcp_dict['spec_code'],
         'spec_name': kcp_dict['spec_name'],
         'application_b': applications_b,
         'application_k': applications_k,
+        'application_b_kcp_ratio': application_b_kcp_ratio,
         'orig_b': f'{orig_all_b} / {kcp_dict["kcp_b_all"]}',
         'orig_b_ball': round(mean_bal_b, 1),
         'orig_k': f'{orig_all_k} / {kcp_dict["kcp_k_all"]}',
