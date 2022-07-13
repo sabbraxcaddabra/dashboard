@@ -170,7 +170,7 @@ mean_point = html.Div(children=[ # Блок с распределением ср
     html.Div('*С учетом выбранных настроек'),
     html.Div('**Для магистратуры указан общий балл'),
     html.H5('Диапазон баллов'),
-    dcc.RangeSlider(40, 100, 5, value=[50, 100], id='bal_range'),
+    dcc.RangeSlider(0, 100, 5, value=[50, 100], id='bal_range'),
     dcc.Graph(id='mean_point_plot')
 ])
 
@@ -182,7 +182,7 @@ agree_ratio = html.Div(children=[
 
 dop_info = html.Div(children=[
     html.H3('Дополнительная статистика'),
-    html.Div('*Учитывается только выбранное направление подготовки'),
+    html.Div('*Не учитывается выбранная форма обучения'),
     html.H3('Распределение по регионам (СПБ и ЛО приведены отдельно)'),
     html.Div(id='spb_lo', style={'marginRight': 700}),
     html.Br(),
@@ -257,14 +257,14 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
         'spec_name': kcp_dict['spec_name'],
         'application_b': applications_b,
         'application_k': applications_k,
-        'orig_b': orig_all_b,
+        'orig_b': f'{orig_all_b} / {kcp_dict["kcp_b_all"]}',
         'orig_b_ball': round(mean_bal_b, 1),
-        'orig_k': orig_all_k,
+        'orig_k': f'{orig_all_k} / {kcp_dict["kcp_k_all"]}',
         'orig_k_ball': round(mean_bal_k, 1),
-        'orig_osn': orig_osn,
-        'orig_celo': orig_celo,
-        'orig_os': orig_os,
-        'orig_spec': orig_spec
+        'orig_osn': f'{orig_os} / {kcp_dict["kcp_b_all"] - kcp_dict.get("kcp_celo", 0) - kcp_dict.get("kcp_os", 0) - kcp_dict.get("kcp_spec", 0)}',
+        'orig_celo': f'{orig_celo} / {kcp_dict.get("kcp_celo", 0)}',
+        'orig_os': f'{orig_os} / {kcp_dict.get("kcp_os", 0)}',
+        'orig_spec': f'{orig_spec} / {kcp_dict.get("kcp_spec", 0)}'
     }
     return spec_dict
 

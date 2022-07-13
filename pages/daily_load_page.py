@@ -67,6 +67,7 @@ def count_orig(series):
 def get_total_stats(df):
     grouped = df.groupby('edu_form').agg(
         spec_name_count=('spec_name', lambda series: series.shape[0]),
+        people_count=('abiturient_id', 'nunique'),
         original_count=('orig_and_agree', count_orig),
         budget=('fintype', get_budget),
         kontract=('fintype', get_contract)
@@ -82,10 +83,11 @@ def get_total_stats(df):
 
 def day_stats(df):
     grouped = df.groupby(['spec_code', 'spec_name', 'edu_form']).agg(
-    spec_name_count=('spec_name', 'count'),
-    original_count=('orig_and_agree', count_orig),
-    budget=('fintype', get_budget),
-    kontract=('fintype', get_contract)
+        spec_name_count=('spec_name', 'count'),
+        people_count=('abiturient_id', 'nunique'),
+        original_count=('orig_and_agree', count_orig),
+        budget=('fintype', get_budget),
+        kontract=('fintype', get_contract)
     )
     return grouped.reset_index()
 
@@ -121,6 +123,7 @@ def get_stats(df):
         'kontract': 'Заявлений на контракт',
         'spec_name_count': 'Заявлений всего',
         'original_count': 'Оригиналов',
+        'people_count': 'Людей'
         }
     )
     return df_table
