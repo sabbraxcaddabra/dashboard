@@ -3,6 +3,12 @@ from sqlalchemy import create_engine
 import pymysql
 import datetime
 
+import os
+import json
+
+HERE = os.path.dirname(__file__)
+TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
+
 class DailyDataLoader:
     _data = None
     _load_date = None
@@ -116,6 +122,10 @@ class DataLoader(DailyDataLoader):
         limit 0, 100000;
         '''
 
+    def load_kcp(self):
+        with open(TOTAL_KCP_FILE, encoding='utf8') as total_kcp_file:
+            self.total_kcp_dict: dict = json.load(total_kcp_file)
+
     def get_mean_point(self, edu_level, disc_point1, disc_point2, disc_point3):
         if edu_level == 'Магистратура':
             return disc_point1
@@ -136,6 +146,7 @@ class DataLoader(DailyDataLoader):
         # df = df[df['point_mean'] > 0]
         self._data = df
         self._load_date = datetime.datetime.now()
+        self.load_kcp()
         return self.data
 
 

@@ -124,16 +124,16 @@ def autofit_columns(edu_level, edu_form):
 
 
 def get_kcp_dict_by_edu_level(edu_level): # Словарь на уровень образование(внутри ключи - формы обучения, значения - словарь со специальностями)
-    return TOTAL_KCP_DICT[edu_level]
+    return DATA_LOADER.total_kcp_dict[edu_level]
 
 def get_kcp_dict_by_edu_form(tmp_kcp_dict, edu_form): # Словарь на форму обуения для словаря, оставшегося при вызове предыдущей функции
     return tmp_kcp_dict[edu_form]
 
 def get_all_edu_forms(edu_level): # Все доступные формы обучения по уровню образования
-    return list(TOTAL_KCP_DICT[edu_level].keys())
+    return list(DATA_LOADER.total_kcp_dict[edu_level].keys())
 
 def get_all_specs(edu_level): # Все доступные специальности по уровню образования
-    return ['Все'] + list(TOTAL_KCP_DICT[edu_level]['Очное'].keys())
+    return ['Все'] + list(DATA_LOADER.total_kcp_dict[edu_level]['Очное'].keys())
 
 
 control_elements = html.Div(children=[
