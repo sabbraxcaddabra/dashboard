@@ -297,21 +297,32 @@ status_pz = html.Div(children=[  # Блок с графиком статусов
 ])
 
 check_needed = html.Div(children=[
-    dcc.Download(id='check_needed'),
+    # dcc.Download(id='check_needed'),
     dcc.Download(id='check_ind_needed'),
     dcc.Download(id='check_id_last_changes'),
     dcc.Download(id='check_id_not_orig_or_agree'),
     dcc.Download(id='check_os_pravo'),
-    dbc.Row(children=[
-        dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')], width=3),
-        dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки ИД', id='check_ind_needed_button')], width=3),
-    ]),
-    html.Br(),
-    dbc.Row(children=[
-        dbc.Col(children=[html.Button('Выгрузить номера дел с особым правом(олимпиады)', id='check_os_pravo_button')], width=3),
-        dbc.Col(children=[html.Button('Выгрузить номера дел с последним изменением в ЛК', id='check_id_last_change_button')], width=3),
-        dbc.Col(children=[html.Button('Выгрузить номера дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button')], width=3),
-    ])
+    dbc.DropdownMenu(
+        label='Выберите тип выгрузки',
+        children=[
+            dbc.DropdownMenuItem('Проверка ИД', id='check_ind_needed_button'),
+            dbc.DropdownMenuItem('Проверка особого права', id='check_os_pravo_button'),
+            dbc.DropdownMenuItem('Проверка Последнее изменение ЛК', id='check_id_last_change_button'),
+            dbc.DropdownMenuItem('Проверка дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button')
+        ],
+        size="lg"
+    ),
+    # dbc.Row(children=[
+    #     # dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')], width=3),
+    #     dbc.Col(children=[html.Button('Выгрузить номера дел с особым правом(олимпиады)', id='check_os_pravo_button')]),
+    #     dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки ИД', id='check_ind_needed_button')]),
+    # ]),
+    # html.Br(),
+    # dbc.Row(children=[
+    #     # dbc.Col(children=[html.Button('Выгрузить номера дел с особым правом(олимпиады)', id='check_os_pravo_button')], width=3),
+    #     dbc.Col(children=[html.Button('Выгрузить номера дел с последним изменением в ЛК', id='check_id_last_change_button')]),
+    #     dbc.Col(children=[html.Button('Выгрузить номера дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button')]),
+    # ])
 ])
 
 layout = html.Div(children=[
