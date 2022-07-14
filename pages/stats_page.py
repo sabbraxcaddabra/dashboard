@@ -265,7 +265,7 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
         'orig_b_ball': round(mean_bal_b, 1),
         'orig_k': f'{orig_all_k} / {kcp_dict["kcp_k_all"]}',
         'orig_k_ball': round(mean_bal_k, 1),
-        'orig_osn': f'{orig_os} / {kcp_dict["kcp_b_all"] - kcp_dict.get("kcp_celo", 0) - kcp_dict.get("kcp_os", 0) - kcp_dict.get("kcp_spec", 0)}',
+        'orig_osn': f'{orig_osn} / {kcp_dict["kcp_b_all"] - kcp_dict.get("kcp_celo", 0) - kcp_dict.get("kcp_os", 0) - kcp_dict.get("kcp_spec", 0)}',
         'orig_celo': f'{orig_celo} / {kcp_dict.get("kcp_celo", 0)}',
         'orig_os': f'{orig_os} / {kcp_dict.get("kcp_os", 0)}',
         'orig_spec': f'{orig_spec} / {kcp_dict.get("kcp_spec", 0)}'
