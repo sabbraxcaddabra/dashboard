@@ -132,8 +132,8 @@ def get_kcp_dict_by_edu_form(tmp_kcp_dict, edu_form): # Словарь на фо
 def get_all_edu_forms(edu_level): # Все доступные формы обучения по уровню образования
     return list(DATA_LOADER.total_kcp_dict[edu_level].keys())
 
-def get_all_specs(edu_level): # Все доступные специальности по уровню образования
-    return ['Все'] + list(DATA_LOADER.total_kcp_dict[edu_level]['Очное'].keys())
+def get_all_specs(edu_level, edu_form): # Все доступные специальности по уровню образования
+    return ['Все'] + list(DATA_LOADER.total_kcp_dict[edu_level][edu_form].keys())
 
 
 control_elements = html.Div(children=[
@@ -236,8 +236,8 @@ def get_spec_table_data(tmp_df, spec_name, kcp_dict): # Таблица с дан
     tmp_df = tmp_df[tmp_df['orig_and_agree'] == 1] # Отбираем только заявлений с согласием и подлинником (или договором)
     # print(tmp_df.loc[:, ['abiturient_id', 'fintype', 'point_mean']])
 
-    budget_points = get_df_by_fintype(tmp_df, 'Бюджет')['point_mean']
-    kontract_points = get_df_by_fintype(tmp_df, 'Контракт')['point_mean']
+    budget_points = get_df_by_fintype(tmp_df, 'Бюджет').drop_duplicates('abiturient_id')['point_mean']
+    kontract_points = get_df_by_fintype(tmp_df, 'Контракт').drop_duplicates('abiturient_id')['point_mean']
     mean_bal_b = budget_points[budget_points > 0].mean() # Средний балл бюджет
     mean_bal_k = kontract_points[kontract_points > 0.].mean() # Средний балл контракт
 
@@ -286,7 +286,7 @@ def download_all(n_clicks): # Формирует и скачивает все э
         with pd.ExcelWriter(f'{edu_level}.xlsx', engine='openpyxl', mode='w') as writer:
             for edu_form in get_all_edu_forms(edu_level):
                 tmp_tmp_df = get_df_by_edu_form(tmp_df, edu_form)
-                specs = get_all_specs(edu_level=edu_level)[1:]
+                specs = get_all_specs(edu_level=edu_level, edu_form=edu_form)[1:]
                 data = []
                 for spec in specs:
                     kcp_dict = get_kcp_dict_by_edu_level(edu_level)
@@ -333,7 +333,7 @@ def get_info_table(n, edu_level, edu_form, spec_name): # Отрисовывае�
         data = [get_spec_table_data(tmp_df, spec_name=spec_name, kcp_dict=kcp_dict)]
     else:
         data = []
-        for spec in get_all_specs(edu_level)[1:]:
+        for spec in get_all_specs(edu_level, edu_form=edu_form)[1:]:
             kcp_dict = get_kcp_dict_by_edu_level(edu_level)
             kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, edu_form)
             kcp_dict = kcp_dict[spec]
@@ -350,10 +350,10 @@ def get_info_table(n, edu_level, edu_form, spec_name): # Отрисовывае�
 
 @callback(
     [Output('spec_names', 'options'), Output('spec_names', 'value')],
-    [Input('edu_level', 'value')]
+    [Input('edu_level', 'value'), Input('edu_form', 'value')]
 )
-def get_spec_names(edu_level): # Записывает в качестве опций выпадающего списка со специальностями все специальности по данному уровню образования
-    specs = get_all_specs(edu_level)
+def get_spec_names(edu_level, edu_form): # Записывает в качестве опций выпадающего списка со специальностями все специальности по данному уровню образования
+    specs = get_all_specs(edu_level, edu_form)
     return specs, 'Все'
 
 @callback(
@@ -397,16 +397,29 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
+    tmp_df = tmp_df.drop_duplicates('abiturient_id')
 
     tmp_df = tmp_df[(tmp_df['point_mean'] > bal_range[0]) & (tmp_df['point_mean'] < bal_range[1])]
 
-    fig = px.histogram(data_frame=tmp_df, x='point_mean', nbins=25, marginal='box')
+    fig = px.histogram(data_frame=tmp_df, x='point_mean',
+                       labels={'point_mean': 'Средний балл'},
+                       nbins=25, marginal='box')
     fig.update_layout(bargap=0.1)
 
     fig.update_layout(
         xaxis_title="Средний балл",
-        yaxis_title="Количество заявлений"
+        yaxis_title="Количество поступающих"
     )
+
+    fig.update_traces(
+        hoverlabel=dict(
+            align='left',
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        )
+    )
+
     return fig
 
 @callback(
@@ -476,6 +489,15 @@ def get_regions_plot(edu_level, spec_name):
         xaxis_title="Количество поступающих",
     )
 
+    fig.update_traces(
+        hoverlabel=dict(
+            align='left',
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        )
+    )
+
     return fig
 
 def get_spb_lo(edu_level, spec_name):
@@ -525,6 +547,14 @@ def get_citiz_plot(edu_level, spec_name):
         yaxis_title='Гражданство',
         xaxis_title="Количество поступающих"
     )
+    fig.update_traces(
+        hoverlabel=dict(
+            align='left',
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        )
+    )
 
     return fig
 
@@ -544,6 +574,14 @@ def get_gender_plot(edu_level, spec_name):
         go.Bar(x=['Мужчины'], y=[mens], name='Мужчины'),
         go.Bar(x=['Женщины'], y=[womens], name='Женщины')
     ]
+    )
+    fig.update_traces(
+        hoverlabel=dict(
+            align='left',
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        )
     )
 
     return fig
