@@ -363,10 +363,6 @@ def get_df_by_app_type(df, app_type):
     [Input('check_os_pravo_button', 'n_clicks')], prevent_initial_call=True
 )
 def check_os_pravo(n_clicks):
-    engine = create_engine(
-            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
-        )
-
     query = '''
         select
      abiturient.id as 'Номер дела'
@@ -374,10 +370,13 @@ def check_os_pravo(n_clicks):
      abiturient
     where abiturient.id in (select abiturient_id from olymp where deleted_at is null);
     '''
+    #
+    # connection = engine.connect()
+    # df = pd.read_sql(query, connection)
+    # connection.close()
 
-    connection = engine.connect()
-    df = pd.read_sql(query, connection)
-    connection.close()
+
+    df = DATA_LOADER.get_check_by_query(query)
     return dcc.send_data_frame(df.to_excel, "Для_проверки_Особого_права.xlsx", sheet_name="Sheet_name_1")
 
 @callback(
@@ -385,9 +384,9 @@ def check_os_pravo(n_clicks):
     [Input('check_ind_needed_button', 'n_clicks')], prevent_initial_call=True
 )
 def check_ind_d(n_clicks):
-    engine = create_engine(
-            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
-        )
+    # engine = create_engine(
+    #         'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+    #     )
 
     query = '''
     select
@@ -399,9 +398,11 @@ def check_ind_d(n_clicks):
         (select achievement.abiturient_id from achievement where achievement.deleted_at is null and achievement.value = 0);
     '''
 
-    connection = engine.connect()
-    df = pd.read_sql(query, connection)
-    connection.close()
+    df = DATA_LOADER.get_check_by_query(query)
+
+    # connection = engine.connect()
+    # df = pd.read_sql(query, connection)
+    # connection.close()
     return dcc.send_data_frame(df.to_excel, "Для_проверки_ИД.xlsx", sheet_name="Sheet_name_1")
 
 @callback(
@@ -409,11 +410,6 @@ def check_ind_d(n_clicks):
     [Input('check_id_not_orig_or_agree_button', 'n_clicks')], prevent_initial_call=True
 )
 def check_id_not_orig_or_agree(n_clicks):
-
-    engine = create_engine(
-            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
-        )
-
     query = '''
         select
       allo.abid as 'Номер дела',
@@ -432,9 +428,7 @@ def check_id_not_orig_or_agree(n_clicks):
       (allo.orig != 1 and allo.sogl != '-' and allo.soglP = '-') or (allo.orig = 1 and allo.sogl = '-' and allo.soglP = '-');
     '''
 
-    connection = engine.connect()
-    df = pd.read_sql(query, connection)
-    connection.close()
+    df = DATA_LOADER.get_check_by_query(query)
     return dcc.send_data_frame(df.to_excel, "Номера дел с согласием без оригинала / оригиналом без согласия.xlsx", sheet_name="Sheet_name_1")
 
 
@@ -443,9 +437,6 @@ def check_id_not_orig_or_agree(n_clicks):
     [Input('check_id_last_change_button', 'n_clicks')], prevent_initial_call=True
 )
 def check_id_last_change(n_clicks):
-    engine = create_engine(
-            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
-        )
 
     query = '''
         select
@@ -457,10 +448,7 @@ def check_id_last_change(n_clicks):
       and if((select created_at from abiturient_progress where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
         (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false);
     '''
-
-    connection = engine.connect()
-    df = pd.read_sql(query, connection)
-    connection.close()
+    df = DATA_LOADER.get_check_by_query(query)
     return dcc.send_data_frame(df.to_excel, "Последнее_изменение_ЛК.xlsx", sheet_name="Sheet_name_1")
 
 
@@ -470,9 +458,6 @@ def check_id_last_change(n_clicks):
     [Input('check_needed_button', 'n_clicks')], prevent_initial_call=True
 )
 def check_arm(n_clicks):
-    engine = create_engine(
-            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
-        )
 
     query = '''
     select
@@ -485,9 +470,7 @@ def check_arm(n_clicks):
         (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false)
     '''
 
-    connection = engine.connect()
-    df = pd.read_sql(query, connection)
-    connection.close()
+    df = DATA_LOADER.get_check_by_query(query)
     return dcc.send_data_frame(df.to_excel, "Для_проверки_АРМ.xlsx", sheet_name="Sheet_name_1")
 
 @callback(

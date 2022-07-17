@@ -6,16 +6,30 @@ import datetime
 import os
 import json
 
+def get_engine():
+    try:
+        engine = create_engine(
+            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+        )
+        conn = engine.connect()
+        conn.close()
+    except:
+        engine = create_engine(
+            'mysql+pymysql://root:1999007vm@localhost/arm2022'
+        )
+        conn = engine.connect()
+        conn.close()
+
+    return engine
+
+
 HERE = os.path.dirname(__file__)
 TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
 
 class DailyDataLoader:
     _data = None
     _load_date = None
-    _engine = create_engine(
-            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
-        )
-
+    _engine = get_engine()
 
     _query = """
             select
@@ -40,6 +54,13 @@ class DailyDataLoader:
         ) as base
         limit 0, 100000;
         """
+
+    def get_check_by_query(self, query):
+        connection = self._engine.connect()
+        df = pd.read_sql(query, connection)
+        connection.close()
+
+        return df
 
     def get_true_spec(self, edu_level, spec_name, profile_name):
         if edu_level != 'Магистратура':
@@ -82,6 +103,14 @@ class DailyDataLoader:
     @property
     def data(self):
         return self._data
+
+class CompareDailyLoader(DailyDataLoader):
+
+    def load_data(self) -> pd.DataFrame:
+        super().load_data()
+
+        self._data['add_data_m_d'] = pd.to_datetime(self._data['add_data']).dt.strftime('%m-%d')
+        return self.data
 
 
 class DataLoader(DailyDataLoader):
