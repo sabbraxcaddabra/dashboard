@@ -51,7 +51,7 @@ app.layout = dbc.Container(children=[
     report_type,
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
-], fluid=True)#style={'marginLeft': 250, 'marginRight': 250})
+], fluid='sm')#style={'marginLeft': 250, 'marginRight': 250})
 
 @app.callback(
     Output('url', 'pathname'),

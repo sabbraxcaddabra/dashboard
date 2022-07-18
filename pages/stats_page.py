@@ -47,8 +47,10 @@ HERE = os.path.dirname(__file__)
 DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
 KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
 TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
+AVERAGE_FILE = os.path.abspath(os.path.join(HERE, "..", "pages", "average.xlsx"))
 
 df = pd.read_excel(DATA_FILE)
+df_avg = pd.read_excel(AVERAGE_FILE)
 
 real_df = DATA_LOADER.load_data
 
@@ -344,8 +346,16 @@ def get_info_table(n, edu_level, edu_form, spec_name): # Отрисовывае�
         data=data,
         merge_duplicate_headers=True,
         style_cell={
-                    'text_align': 'left'
+                    'text_align': 'center'
                     },
+        style_cell_conditional=[
+            {
+                'if': {'column_id': 'spec_name'},
+                'textAlign': 'left'
+            }],
+        style_header={
+            'text_align': 'center'
+        }
     )
 
 @callback(
@@ -385,6 +395,20 @@ def get_df_by_spec_name(tmp_df, spec_name):
     else:
         return tmp_df
 
+
+# Определение среднего балла
+def get_averange_ball(edu_level, edu_form, code):
+    df = df_avg
+
+    tmp_df = get_df_by_edu_level(df, edu_level)
+    tmp_df = get_df_by_edu_form(tmp_df, edu_form)
+    tmp_df = tmp_df[tmp_df['spec_code'] == code]
+
+    avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']['ball'].values
+    avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']['ball'].values
+
+    return avr_b, avr_k
+
 @callback(
     Output('mean_point_plot', 'figure'),
     [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
@@ -397,6 +421,10 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
+    code = tmp_df.iloc[0]['spec_code']
+
+    avg_balls = get_averange_ball(edu_level, edu_form, code)
+
     tmp_df = tmp_df.drop_duplicates('abiturient_id')
 
     tmp_df = tmp_df[(tmp_df['point_mean'] > bal_range[0]) & (tmp_df['point_mean'] < bal_range[1])]
@@ -419,6 +447,12 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
             font_family="Rockwell"
         )
     )
+
+    if avg_balls[0]:
+        fig.add_vline(x=float(avg_balls[0]), line_width=3, line_dash="dash")
+
+    if avg_balls[1]:
+        fig.add_vline(x=float(avg_balls[1]), line_width=3, line_dash="dash", line_color='red')
 
     return fig
 
