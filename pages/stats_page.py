@@ -170,6 +170,8 @@ mean_point = html.Div(children=[ # Блок с распределением ср
         dcc.Graph(id='kvots_plot')
     ], id='kvots_div'),
     html.H3('Распределение по баллам'),
+    html.Div('Пунктирными линиями показаны средние баллы 2021 года', style={'fontSize': '18px'}),
+    html.Div('Черная линия - средний балл на бюджет, красная линия - средний балл на контракт', style={'fontSize': '18px'}),
     html.Div('*С учетом выбранных настроек'),
     html.Div('**Для магистратуры указан общий балл'),
     html.H5('Диапазон баллов'),
@@ -397,15 +399,22 @@ def get_df_by_spec_name(tmp_df, spec_name):
 
 
 # Определение среднего балла
-def get_averange_ball(edu_level, edu_form, code):
+def get_averange_ball(edu_level, edu_form, code, spec_name):
     df = df_avg
+
+    if edu_level == 'Магистратура':
+        return 0, 0
 
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
-    tmp_df = tmp_df[tmp_df['spec_code'] == code]
 
-    avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']['ball'].values
-    avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']['ball'].values
+    if spec_name != 'Все':
+        tmp_df = tmp_df[tmp_df['spec_code'] == code]
+        avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']['ball'].values
+        avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']['ball'].values
+    else:
+        avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']['ball'].values.mean()
+        avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']['ball'].values.mean()
 
     return avr_b, avr_k
 
@@ -421,9 +430,7 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
     tmp_df = get_df_by_edu_level(df, edu_level)
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
     tmp_df = get_df_by_spec_name(tmp_df, spec_name)
-    code = tmp_df.iloc[0]['spec_code']
 
-    avg_balls = get_averange_ball(edu_level, edu_form, code)
 
     tmp_df = tmp_df.drop_duplicates('abiturient_id')
 
@@ -448,13 +455,16 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
         )
     )
 
+    if edu_level != 'Магистратура':
+        code = tmp_df.iloc[0]['spec_code']
 
+        avg_balls = get_averange_ball(edu_level, edu_form, code, spec_name)
 
-    if avg_balls[0]:
-        fig.add_vline(x=float(avg_balls[0]), line_width=3, line_dash="dash")
+        if avg_balls[0]:
+            fig.add_vline(x=float(avg_balls[0]), line_width=3, line_dash="dash")
 
-    if avg_balls[1]:
-        fig.add_vline(x=float(avg_balls[1]), line_width=3, line_dash="dash", line_color='red')
+        if avg_balls[1]:
+            fig.add_vline(x=float(avg_balls[1]), line_width=3, line_dash="dash", line_color='red')
 
     return fig
 
