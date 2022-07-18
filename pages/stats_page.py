@@ -420,6 +420,8 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
         )
     )
 
+
+
     return fig
 
 @callback(

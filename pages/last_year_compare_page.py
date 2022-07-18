@@ -25,6 +25,12 @@ from . import data_loader
 DATA_LOADER = data_loader.CompareDailyLoader()
 DATA_LOADER.load_data()
 
+def get_only_needed_cols(df):
+
+    df = df.loc[:, ['spec_code', 'add_data']]
+
+    return df
+
 def get_df_by_edu_level(df, edu_level):
     if edu_level != 'Магистратура':
         return df[df['edu_form'] != 'Магистратура']
@@ -50,6 +56,16 @@ def get_df_by_date(df, date):
     df = df[df['add_data'] <= date]
 
     return df
+
+def get_df_by_del_date(df, date):
+    date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+
+    df = df[(df['add_data'] <= date) & (df['del_data'] <= date)]
+
+    return df
+
+def get_ok_status(df):
+    return df[df['status_id'] == 2]
 
 def filter_all(df, date, edu_level, edu_form, fintype, post_method):
 
@@ -218,18 +234,34 @@ def plot_compare_adm_plot(date, edu_level, edu_form):
 
 
     df = DATA_LOADER.data
+    df = get_ok_status(df)
     df = get_df_by_date(df, date)
     df = get_df_by_edu_level(df, edu_level)
     df = get_df_by_edu_form(df, edu_form)
 
+    df_21 = DATA_LOADER.last_year_df
+    df_21 = get_df_by_del_date(df_21, date)
+    df_21 = get_df_by_edu_level(df_21, edu_level)
+    df_21 = get_df_by_edu_form(df_21, edu_form)
+
+
     counts = pd.value_counts(df['fintype'])
+    counts_21 = pd.value_counts(df_21['fintype'])
 
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(name="Основные места", x=["2022"], y=[counts.get("Основные места", 0)]))
-    fig.add_trace(go.Bar(name="С оплатой обучения", x=["2022"], y=[counts.get("С оплатой обучения", 0)]))
-    fig.add_trace(go.Bar(name="Целевая квота", x=["2022"], y=[counts.get("Целевая квота", 0)]))
-    fig.add_trace(go.Bar(name="Целевая квота", x=["2022"], y=[counts.get("Целевая квота", 0)]))
+    fig.add_trace(go.Bar(name="Основные места",
+                         x=["2022", "2021"],
+                         y=[counts.get("Основные места", 0), counts_21.get("Основные места", 0)]))
+    fig.add_trace(go.Bar(name="С оплатой обучения",
+                         x=["2022", "2021"],
+                         y=[counts.get("С оплатой обучения", 0), counts_21.get("С оплатой обучения", 0)]))
+    fig.add_trace(go.Bar(name="Особая квота",
+                         x=["2022", "2021"],
+                         y=[counts.get("Особая квота", 0), counts_21.get("Особая квота", 0)]))
+    fig.add_trace(go.Bar(name="Целевая квота",
+                         x=["2022", "2021"],
+                         y=[counts.get("Целевая квота", 0), counts_21.get("Целевая квота", 0)]))
     fig.update_layout(barmode='group')
 
     fig.update_layout(
@@ -249,9 +281,21 @@ def plot_compare_adm_plot(date, edu_level, edu_form, fintype, post_method):
 
 
     df = DATA_LOADER.data
+    df = get_ok_status(df)
     df = filter_all(df, date, edu_level, edu_form, fintype, post_method)
 
-    fig = px.histogram(df, x='spec_code').update_xaxes(categoryorder='total ascending')
+    df_21 = DATA_LOADER.last_year_df
+    df_21 = filter_all(df_21, date, edu_level, edu_form, fintype, post_method)
+    df_21 = get_df_by_del_date(df_21, date)
+
+    df = get_only_needed_cols(df)
+    df_21 = get_only_needed_cols(df_21)
+
+    df['year'] = 2022
+    df_21['year'] = 2021
+
+    total_df = pd.concat((df, df_21), ignore_index=True)
+    fig = px.histogram(total_df, x='spec_code', color='year', barmode='group').update_xaxes(categoryorder='total ascending')
 
     fig.update_layout(
         xaxis_title="Код направления подготовки",
