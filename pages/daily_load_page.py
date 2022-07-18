@@ -134,10 +134,19 @@ def get_today_table(df):
     today_df = df[df['add_data'] == today]
     df_table = get_stats(today_df)
     d_table  = dash.dash_table.DataTable(
-        df_table.to_dict('records'),
-        [{"name": i, "id": i} for i in df_table.columns],
-        style_cell={'textAlign': 'left'},
+        data=df_table.to_dict('records'),
+        columns=[{"name": i, "id": i} for i in df_table.columns],
+        style_cell={
+                    'text_align': 'left'
+                    },
+        style_cell_conditional=[
+            {
+                'if': {'column_id': 'spec_name'},
+                'textAlign': 'left'
+            }
+        ]
     )
+
 
     table = go.Table(
         header=dict(values=df_table.columns.tolist()),
