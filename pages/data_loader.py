@@ -25,6 +25,7 @@ def get_engine():
 
 HERE = os.path.dirname(__file__)
 TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
+LAST_YEAR_DATA = os.path.abspath(os.path.join(HERE, ".", "srez21.xlsx"))
 
 class DailyDataLoader:
     _data = None
@@ -106,6 +107,26 @@ class DailyDataLoader:
 
 class CompareDailyLoader(DailyDataLoader):
 
+    def replace_year(self, date_to_parce):
+        today = datetime.date.today()
+        parsed = datetime.datetime.strptime(date_to_parce, '%Y-%m-%d').date().replace(year=today.year)
+        return parsed
+
+    def __init__(self):
+        super(CompareDailyLoader, self).__init__()
+        self.last_year_df: pd.DataFrame = pd.read_excel(LAST_YEAR_DATA, parse_dates=True)
+        self.last_year_df['add_data'] = pd.to_datetime(self.last_year_df['add_data'])
+        self.last_year_df['del_data'] = pd.to_datetime(self.last_year_df['del_data'])
+        self.last_year_df['add_data'] = self.last_year_df['add_data'].apply(lambda date: date.replace(year=2022))
+        self.last_year_df['del_data'] = self.last_year_df['del_data'].apply(lambda date: date.replace(year=2022))
+        self.last_year_df['add_data'] = self.last_year_df['add_data'].dt.date
+        self.last_year_df['del_data'] = self.last_year_df['del_data'].dt.date
+        # self.last_year_df['add_data'] = self.last_year_df['add_data'].apply(lambda date: self.replace_year(date))
+        # self.last_year_df['del_data'] = self.last_year_df['del_data'].apply(lambda date: self.replace_year(date))
+        self.last_year_df['add_data_m_d'] = pd.to_datetime(self.last_year_df['add_data']).dt.strftime('%m-%d')
+        self.last_year_df['del_data_m_d'] = pd.to_datetime(self.last_year_df['del_data']).dt.strftime('%m-%d')
+
+
     def load_data(self) -> pd.DataFrame:
         super().load_data()
 
@@ -184,8 +205,10 @@ if __name__ == '__main__':
 
     DAILY_DATA_LOADER = DailyDataLoader()
     DATA_LOADER = DataLoader()
+    LAST_DATA_LOADER = CompareDailyLoader()
     df = DAILY_DATA_LOADER.load_data()
     df_bal = DATA_LOADER.load_data()
+    df_last = LAST_DATA_LOADER.last_year_df
 
     # for i in range(10):
     #     DATA_LOADER.load_data()

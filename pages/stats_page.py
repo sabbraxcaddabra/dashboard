@@ -448,6 +448,8 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
         )
     )
 
+
+
     if avg_balls[0]:
         fig.add_vline(x=float(avg_balls[0]), line_width=3, line_dash="dash")
 
