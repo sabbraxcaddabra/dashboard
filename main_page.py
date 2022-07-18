@@ -46,12 +46,12 @@ report_type = html.Div(children=[
     html.Br(),
 ])
 
-app.layout = html.Div(children=[
+app.layout = dbc.Container(children=[
     page_header,
     report_type,
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
-], style={'marginLeft': 250, 'marginRight': 250})
+], fluid=True)#style={'marginLeft': 250, 'marginRight': 250})
 
 @app.callback(
     Output('url', 'pathname'),
