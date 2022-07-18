@@ -33,9 +33,9 @@ def get_only_needed_cols(df):
 
 def get_df_by_edu_level(df, edu_level):
     if edu_level != 'Магистратура':
-        return df[df['edu_form'] != 'Магистратура']
+        return df[df['edu_level'] != 'Магистратура']
     else:
-        return df[df['edu_form'] == 'Магистратура']
+        return df[df['edu_level'] == 'Магистратура']
 
 def get_df_by_edu_form(tmp_df, edu_form):
     # Фильтруем по признаку Очное / Очно-Заочное / Заочное
