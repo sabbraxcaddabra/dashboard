@@ -47,10 +47,10 @@ HERE = os.path.dirname(__file__)
 DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
 KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
 TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
-AVERAGE_FILE = os.path.abspath(os.path.join(HERE, "..", "pages", "average.xlsx"))
+AVERAGE_FILE = os.path.abspath(os.path.join(HERE, ".", "average.xlsx"))
 
 df = pd.read_excel(DATA_FILE)
-df_avg = pd.read_excel(AVERAGE_FILE)
+df_avg: pd.DataFrame = pd.read_excel(AVERAGE_FILE)
 
 real_df = DATA_LOADER.load_data
 
@@ -405,21 +405,33 @@ def get_df_by_spec_name(tmp_df, spec_name):
 
 # Определение среднего балла
 def get_averange_ball(edu_level, edu_form, code, spec_name):
-    df = df_avg
-
     if edu_level == 'Магистратура':
         return 0, 0
 
-    tmp_df = get_df_by_edu_level(df, edu_level)
+    tmp_df = get_df_by_edu_level(df_avg, edu_level)
+
     tmp_df = get_df_by_edu_form(tmp_df, edu_form)
+
 
     if spec_name != 'Все':
         tmp_df = tmp_df[tmp_df['spec_code'] == code]
-        avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']['ball'].values
-        avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']['ball'].values
+        avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']
+        avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']
+
+
+        if not avr_k.empty:
+            avr_k = avr_k['ball'].iloc[0]
+        else:
+            avr_k = None
+
+        if not avr_b.empty:
+            avr_b = avr_b['ball'].iloc[0]
+        else:
+            avr_b = None
+
     else:
-        avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']['ball'].values.mean()
-        avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']['ball'].values.mean()
+        avr_k = tmp_df[tmp_df['fintype'] == 'Контракт']['ball'].mean()
+        avr_b = tmp_df[tmp_df['fintype'] == 'Бюджет']['ball'].mean()
 
     return avr_b, avr_k
 
@@ -469,8 +481,9 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
         b_average_text = ''
         c_average_text = ''
 
-        if avg_balls:
+        if any(avg_balls):
             any_average_text = 'Пунктирными линиями показаны средние баллы 2021 года'
+
         if avg_balls[0]:
 
             fig.add_vline(x=float(avg_balls[0]), line_width=3, line_dash="dash")
