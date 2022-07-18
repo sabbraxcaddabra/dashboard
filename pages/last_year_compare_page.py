@@ -11,6 +11,7 @@ import dash_bootstrap_components as dbc
 
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import openpyxl
 
 from getpass import getpass
@@ -27,7 +28,7 @@ DATA_LOADER.load_data()
 
 def get_only_needed_cols(df):
 
-    df = df.loc[:, ['spec_code', 'add_data']]
+    df = df.loc[:, ['spec_code', 'add_data', 'fintype']]
 
     return df
 
@@ -111,7 +112,10 @@ control_elements = html.Div(children=[
 
 layout = html.Div(children=[
     control_elements,
-    dcc.Graph(id='compare_adm_cond'), # Сравнение двух лет по условиям поступления
+    dbc.Row(children=[
+        dbc.Col(dcc.Graph(id='compare_adm_cond_osn_kontract')), # Сравнение двух лет по условиям поступления
+        dbc.Col(dcc.Graph(id='compare_adm_cond_os_celo')), # Сравнение двух лет по условиям поступления
+    ]),
     dbc.Row(children=[
         dbc.Col(children=[
             html.Div('Условие поступления'),
@@ -227,7 +231,7 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
     return fig, fig_cum
 
 @callback(
-    Output('compare_adm_cond', 'figure'),
+    [Output('compare_adm_cond_osn_kontract', 'figure'), Output('compare_adm_cond_os_celo', 'figure')],
     [Input('pick_a_date', 'date'), Input('edu_level_dropdown', 'value'), Input('edu_form', 'value')]
 )
 def plot_compare_adm_plot(date, edu_level, edu_form):
@@ -244,32 +248,73 @@ def plot_compare_adm_plot(date, edu_level, edu_form):
     df_21 = get_df_by_edu_level(df_21, edu_level)
     df_21 = get_df_by_edu_form(df_21, edu_form)
 
+    df = get_only_needed_cols(df)
+    df_21 = get_only_needed_cols(df_21)
+
+    df['year'] = 2022
+    df_21['year'] = 2021
+
+    total_df = pd.concat((df, df_21), ignore_index=True)
+
 
     counts = pd.value_counts(df['fintype'])
     counts_21 = pd.value_counts(df_21['fintype'])
 
+    os_and_celo = total_df[(total_df['fintype'] == 'Особая квота') | (total_df['fintype'] == 'Целевая квота')]
+    osn_and_kontract = total_df[(total_df['fintype'] == 'Основные места') | (total_df['fintype'] == 'С оплатой обучения')]
 
-    fig = go.Figure()
-    fig.add_trace(go.Bar(name="Основные места",
-                         x=["2022", "2021"],
-                         y=[counts.get("Основные места", 0), counts_21.get("Основные места", 0)]))
-    fig.add_trace(go.Bar(name="С оплатой обучения",
-                         x=["2022", "2021"],
-                         y=[counts.get("С оплатой обучения", 0), counts_21.get("С оплатой обучения", 0)]))
-    fig.add_trace(go.Bar(name="Особая квота",
-                         x=["2022", "2021"],
-                         y=[counts.get("Особая квота", 0), counts_21.get("Особая квота", 0)]))
-    fig.add_trace(go.Bar(name="Целевая квота",
-                         x=["2022", "2021"],
-                         y=[counts.get("Целевая квота", 0), counts_21.get("Целевая квота", 0)]))
-    fig.update_layout(barmode='group')
+    fig_os_and_celo = px.histogram(os_and_celo, x='fintype', color='year', barmode='group', text_auto=True)
+    fig_osn_and_kontract = px.histogram(osn_and_kontract, x='fintype', color='year', barmode='group', text_auto=True)
 
-    fig.update_layout(
+    fig_osn_and_kontract.update_traces(textposition='outside')
+    fig_os_and_celo.update_traces(textposition='outside')
+
+    max_os_celo = pd.value_counts(os_and_celo['fintype']).max()
+    max_osn_kontract = pd.value_counts(osn_and_kontract['fintype']).max()
+
+    fig_osn_and_kontract.update_layout(
         xaxis_title="Тип финансирования",
-        yaxis_title="Кол-во заявлений"
+        yaxis_title="Кол-во заявлений",
+        font=dict(
+            family="Courier New, monospace",
+            size=18,
+        )
     )
 
-    return fig
+
+    fig_os_and_celo.update_layout(
+        xaxis_title="Тип финансирования",
+        yaxis_title="Кол-во заявлений",
+        font=dict(
+            family="Courier New, monospace",
+            size=18,
+        )
+    )
+
+    fig_osn_and_kontract.update_yaxes(range=[0, max_osn_kontract * 1.2])
+    fig_os_and_celo.update_yaxes(range=[0, max_os_celo * 1.2])
+
+    return fig_osn_and_kontract, fig_os_and_celo
+
+    # fig.add_trace(go.Bar(name="Основные места",
+    #                      x=["2022", "2021"],
+    #                      y=[counts.get("Основные места", 0), counts_21.get("Основные места", 0)]), row=1, col=1)
+    # fig.add_trace(go.Bar(name="С оплатой обучения",
+    #                      x=["2022", "2021"],
+    #                      y=[counts.get("С оплатой обучения", 0), counts_21.get("С оплатой обучения", 0)]), row=1, col=2)
+    # fig.add_trace(go.Bar(name="Особая квота",
+    #                      x=["2022", "2021"],
+    #                      y=[counts.get("Особая квота", 0), counts_21.get("Особая квота", 0)]), row=2, col=1)
+    # fig.add_trace(go.Bar(name="Целевая квота",
+    #                      x=["2022", "2021"],
+    #                      y=[counts.get("Целевая квота", 0), counts_21.get("Целевая квота", 0)]), row=2, col=2)
+    #
+    # # fig.update_layout(
+    # #     xaxis_title="Тип финансирования",
+    # #     yaxis_title="Кол-во заявлений"
+    # # )
+    # #
+    # return fig
 
 @callback(
     Output('compare_adm_cond_speces', 'figure'),
