@@ -170,8 +170,13 @@ mean_point = html.Div(children=[ # Блок с распределением ср
         dcc.Graph(id='kvots_plot')
     ], id='kvots_div'),
     html.H3('Распределение по баллам'),
-    html.Div('Пунктирными линиями показаны средние баллы 2021 года', style={'fontSize': '18px'}),
-    html.Div('Черная линия - средний балл на бюджет, красная линия - средний балл на контракт', style={'fontSize': '18px'}),
+    html.Div(style={'fontSize': '18px'},
+             id='any_average',
+             ),
+    dbc.Row(children=[
+        dbc.Col(html.Div(id='budget_average', style={'fontSize': '22px', 'color': 'red'})),
+        dbc.Col(html.Div(id='contract_average', style={'fontSize': '22px', 'color': 'red'}))
+    ]),
     html.Div('*С учетом выбранных настроек'),
     html.Div('**Для магистратуры указан общий балл'),
     html.H5('Диапазон баллов'),
@@ -419,7 +424,8 @@ def get_averange_ball(edu_level, edu_form, code, spec_name):
     return avr_b, avr_k
 
 @callback(
-    Output('mean_point_plot', 'figure'),
+    [Output('mean_point_plot', 'figure'), Output('any_average', 'children'),
+     Output('budget_average', 'children'), Output('contract_average', 'children')],
     [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('edu_form', 'value'), Input('spec_names', 'value'),
      Input('bal_range', 'value')
      ]
@@ -459,14 +465,28 @@ def update_mean_point_plot(n, edu_level, edu_form, spec_name, bal_range): # Об
         code = tmp_df.iloc[0]['spec_code']
 
         avg_balls = get_averange_ball(edu_level, edu_form, code, spec_name)
+        any_average_text = ''
+        b_average_text = ''
+        c_average_text = ''
 
+        if avg_balls:
+            any_average_text = 'Пунктирными линиями показаны средние баллы 2021 года'
         if avg_balls[0]:
+
             fig.add_vline(x=float(avg_balls[0]), line_width=3, line_dash="dash")
+
+            b_average_text = f'Черная линия - средний балл на бюджет ({avg_balls[0]:2.1f});'
 
         if avg_balls[1]:
             fig.add_vline(x=float(avg_balls[1]), line_width=3, line_dash="dash", line_color='red')
+            c_average_text = f'\t\tКрасная линия линия - средний балл на контракт ({avg_balls[1]:2.1f})'
+    else:
+        any_average_text = ''
+        b_average_text = ''
+        c_average_text = ''
 
-    return fig
+
+    return fig, any_average_text, b_average_text, c_average_text
 
 @callback(
     Output('agree_ratio_plot', 'figure'),
@@ -554,13 +574,15 @@ def get_spb_lo(edu_level, spec_name):
 
     tmp_df = tmp_df.drop_duplicates(subset='abiturient_id')
 
+    other = tmp_df[(tmp_df['region_name'] != 'г. Санкт-Петербург') & (tmp_df['region_name'] != 'Ленинградская обл.') & (tmp_df['region_name'] != '-')]
+
     tmp_df = tmp_df[(tmp_df['region_name'] == 'г. Санкт-Петербург') | (tmp_df['region_name'] == 'Ленинградская обл.')]
 
     counts = pd.value_counts(tmp_df['region_name'])
 
     tmp_df = pd.DataFrame(data={
-        'Регион': counts.index,
-        'Количество поступающих': counts.values
+        'Регион': list(counts.index) + ['Другие'],
+        'Количество поступающих': list(counts.values) + [other.shape[0]]
     })
 
     table = dash.dash_table.DataTable(
