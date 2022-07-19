@@ -265,12 +265,15 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
         go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers')
     ])
 
+    fig.update_layout(hovermode="x unified")
+
     values, people_values, new_date, new_date_people = get_load_scater(counts, people_counts, fig_type='cum')
 
     fig_cum.add_traces([
         go.Scatter(x=new_date, y=values, name='Заявления 2021', mode='lines+markers', line_color='#F23911'),
         go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers')
     ])
+    fig_cum.update_layout(hovermode="x unified")
 
 
     return fig, fig_cum
