@@ -321,7 +321,8 @@ check_needed = html.Div(children=[
             dbc.DropdownMenuItem('Проверка дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button'),
             dbc.DropdownMenuItem('Требует проверки не ЕПГУ', id='check_id_not_epgu_button'),
         ],
-        size="lg"
+        size="lg",
+        direction='end'
     ),
     # dbc.Row(children=[
     #     # dbc.Col(children=[html.Button('Выгрузить номера дел требующих проверки', id='check_needed_button')], width=3),
