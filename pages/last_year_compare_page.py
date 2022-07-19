@@ -112,7 +112,7 @@ control_elements = html.Div(children=[
 
 layout = html.Div(children=[
     dcc.Interval(id='update_interval', interval=300e3),
-    html.Div(id='total_table', style={'marginRight': 700}),
+    html.Div(id='total_compare_table', style={'marginRight': 700}),
     html.Br(),
     control_elements,
     html.Br(),
@@ -296,7 +296,7 @@ def update_dates_range(n):
     return max_date
 
 @callback(
-    Output('total_table', 'children'),
+    Output('total_compare_table', 'children'),
     [Input('update_interval', 'n_intervals'), Input('pick_a_date_single', 'date')]
 )
 def update_table(n_interval, date):
@@ -308,6 +308,9 @@ def update_table(n_interval, date):
 
     df_21 = DATA_LOADER.last_year_df
     df_21 = get_df_by_del_date(df_21, date)
+
+    print(df.shape, 'Текущий год')
+    print(df_21.shape, 'Прошлый год')
 
     dict_22 = get_stats_by_year(df)
     dict_21 = get_stats_by_year(df_21)
@@ -394,7 +397,7 @@ def plot_compare_adm_plot(n_intervals, date, edu_level, edu_form):
     fig_osn_and_kontract.update_yaxes(range=[0, max_osn_kontract * 1.2])
     fig_os_and_celo.update_yaxes(range=[0, max_os_celo * 1.2])
 
-    div_text = f'Всего заявлений на бюджет (21/22): {df.shape[0]}/{df_21.shape[0]}'
+    div_text = f'Всего заявлений на бюджет (21/22): {df_21[df_21["fintype"] != "С оплатой обучения"].shape[0]}/{df[df["fintype"] != "С оплатой обучения"].shape[0]}'
 
     return fig_osn_and_kontract, fig_os_and_celo, div_text
 

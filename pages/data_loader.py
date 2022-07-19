@@ -183,17 +183,10 @@ class DataLoader(DailyDataLoader):
             return (disc_point1+disc_point2+disc_point3) / 3
 
     def load_data(self) -> pd.DataFrame:
-        # connection = self._engine.connect()
-        # df = pd.read_sql(self._query, connection, parse_dates={'add_data': '%Y/%m/%d'})
-        # # df['orig_and_agree'] = df.apply(
-        # #     lambda row: self.get_orig_and_agree(row['fintype'], row['original'], row['agree'], row['dogovor']), axis=1)
-        # df['add_data'] = df['add_data'].dt.date
-        # connection.close()
 
         df = super().load_data()
 
         df['point_mean'] = df.apply(lambda row: self.get_mean_point(row['edu_level'], row['disc_point1'], row['disc_point2'], row['disc_point3']), axis=1)
-        # df = df[df['point_mean'] > 0]
         self._data = df
         self._load_date = datetime.datetime.now()
         self.load_kcp()
