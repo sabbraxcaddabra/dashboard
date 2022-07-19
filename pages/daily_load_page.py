@@ -376,7 +376,7 @@ def get_df_by_app_type(df, app_type):
 def check_not_epgu(n_clicks):
     query = '''
         select ab.id from abiturient as ab join side_info on side_info.abiturient_id = ab.id
-    where ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock) and ((ab.status_id in (3, 4)
+    where ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock where user_id = 6) and ((ab.status_id in (3, 4)
     and if((select created_at from abiturient_progress 
       where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
         (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false))
@@ -472,7 +472,7 @@ def check_id_last_change(n_clicks):
     from 
       abiturient as ab
     where
-      ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock)
+      ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock where user_id = 6)
       and if((select created_at from abiturient_progress where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
         (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false);
     '''
@@ -493,7 +493,7 @@ def check_arm(n_clicks):
     from 
       abiturient as ab
     where
-      ab.status_id = 4 and ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock)
+      ab.status_id = 4 and ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock where user_id = 6)
       and if((select created_at from abiturient_progress where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
         (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false)
     '''

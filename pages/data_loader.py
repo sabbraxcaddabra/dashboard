@@ -51,7 +51,7 @@ class DailyDataLoader:
                 join edulevel on edulevel.id = competitive_group.edulevel_id join fintype on fintype.id = competitive_group.fintype_id
                 join eduform on eduform.id = competitive_group.eduform_id join post_method on side_info.post_method_id = post_method.id
           where
-            application.deleted_at is null  and abiturient.id not in (select abiturient_id from abiturient_lock)
+            application.deleted_at is null  and abiturient.id not in (select abiturient_id from abiturient_lock where user_id = 6)
         ) as base
         limit 0, 100000;
         """
@@ -167,7 +167,7 @@ class DataLoader(DailyDataLoader):
                 join fintype on fintype.id = competitive_group.fintype_id join eduform on eduform.id = competitive_group.eduform_id join post_method on side_info.post_method_id = post_method.id
                 join application_exam_cache on application_exam_cache.application_id = application.id
           where
-            application.deleted_at is null and abiturient.status_id = 2 and abiturient.id not in (select abiturient_id from abiturient_lock)
+            application.deleted_at is null and abiturient.status_id = 2 and abiturient.id not in (select abiturient_id from abiturient_lock where user_id = 6)
         ) as base
         limit 0, 100000;
         '''

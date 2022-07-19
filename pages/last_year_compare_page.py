@@ -231,11 +231,11 @@ def get_load_figure(
 
 @callback(
     [Output('daily_load_plot_not_cum', 'figure'), Output('daily_load_plot_cum', 'figure')],
-    [Input('pick_a_date_single', 'date'), Input('edu_level_dropdown', 'value'), Input('edu_form', 'value'),
+    [Input('update_interval', 'n_intervals'), Input('pick_a_date_single', 'date'), Input('edu_level_dropdown', 'value'), Input('edu_form', 'value'),
      Input('type_f_dropdown', 'value'), Input('post_method_dropdown', 'value')
      ]
 )
-def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
+def plot_daily_load(n, date, edu_level, edu_form, fintype, post_method):
     df = DATA_LOADER.data
     df = filter_all(df, date, edu_level, edu_form, fintype, post_method)
 
@@ -262,7 +262,7 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
 
     fig.add_traces([
         go.Scatter(x=new_date, y=values, name='Заявления 2021', mode='lines+markers', line_color='rgb(0, 76, 180)'),
-        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers', line_color='rgb(188, 17, 0)')
+        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers', line_color='rgb(142, 15, 13)')
     ])
 
     fig.update_layout(hovermode="x unified")
@@ -271,7 +271,7 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
 
     fig_cum.add_traces([
         go.Scatter(x=new_date, y=values, name='Заявления 2021', mode='lines+markers', line_color='rgb(0, 76, 180)'),
-        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers', line_color='rgb(188, 17, 0)')
+        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers', line_color='rgb(142, 15, 13)')
     ])
     fig_cum.update_layout(hovermode="x unified")
 
@@ -306,7 +306,7 @@ def update_table(n_interval, date):
     DATA_LOADER.load_data()
 
     df = DATA_LOADER.data
-    df = get_ok_status(df)
+    # df = get_ok_status(df)
     df = get_df_by_date(df, date)
 
     df_21 = DATA_LOADER.last_year_df
@@ -404,12 +404,11 @@ def plot_compare_adm_plot(n_intervals, date, edu_level, edu_form):
 
 @callback(
     Output('compare_adm_cond_speces', 'figure'),
-    [Input('pick_a_date_single', 'date'), Input('edu_level_dropdown', 'value'), Input('edu_form', 'value'),
+    [Input('update_interval', 'n_intervals'), Input('pick_a_date_single', 'date'), Input('edu_level_dropdown', 'value'), Input('edu_form', 'value'),
      Input('type_f_dropdown', 'value'), Input('post_method_dropdown', 'value')
      ]
 )
-def plot_compare_adm_plot(date, edu_level, edu_form, fintype, post_method):
-
+def plot_compare_adm_plot(n, date, edu_level, edu_form, fintype, post_method):
 
     df = DATA_LOADER.data
     df = get_ok_status(df)
