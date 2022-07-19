@@ -621,8 +621,8 @@ def plot_daily_load(n, start, end, post_type, app_type, fintype, edu_level):
     people_counts = pd.value_counts(tmp_df['add_data'])
     people_counts = people_counts.sort_index()
 
-    fig = get_load_figure(counts, people_counts, 'rgba(20, 162, 238, 0.7)', 'rgba(241, 50, 31, 0.7)','not_cum')
-    fig_cum = get_load_figure(counts, people_counts, 'rgba(20, 162, 238, 0.7)', 'rgba(241, 50, 31, 0.7)', 'cum')
+    fig = get_load_figure(counts, people_counts, 'rgba(43, 123, 231, 0.6)', 'rgba(241, 50, 31, 0.6)', 'not_cum')
+    fig_cum = get_load_figure(counts, people_counts, 'rgba(43, 123, 231, 0.6)', 'rgba(241, 50, 31, 0.6)', 'cum')
 
     return fig, fig_cum
 
