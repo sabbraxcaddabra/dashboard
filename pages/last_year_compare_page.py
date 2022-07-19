@@ -211,8 +211,8 @@ def get_load_figure(
     values, people_values, new_date, new_date_people = get_load_scater(counts, people_counts, fig_type)
     fig = go.Figure()
     fig.add_traces(data=[
-        go.Scatter(x=new_date, y=values, name='Заявления', mode='none', fill='tozeroy', fillcolor=color),
-        go.Scatter(x=new_date_people, y=people_values, name='Люди', fill='tozeroy', fillcolor=people_color)
+        go.Scatter(x=new_date, y=values, name='Заявления', mode='none', fill='tozeroy', fillcolor=color, opacity=0.5),
+        go.Scatter(x=new_date_people, y=people_values, name='Люди', fill='tozeroy', fillcolor=people_color, opacity=0.5)
     ]
     )
 
@@ -252,8 +252,8 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
     counts = total_counts['add_data_m_d']
     people_counts = total_people_counts['add_data_m_d']
 
-    fig = get_load_figure(counts, people_counts, '#00CC00', '#FF8500','not_cum')
-    fig_cum = get_load_figure(counts, people_counts, '#0776A0', '#FF8500', 'cum')
+    fig = get_load_figure(counts, people_counts, 'rgba(0, 204, 0, 0.7)', 'rgba(255, 133, 0, 0.7)','not_cum')
+    fig_cum = get_load_figure(counts, people_counts, 'rgba(7, 118, 160, 0.7)', 'rgba(255, 133, 0, 0.7)', 'cum')
 
     counts = total_counts['add_data_m_d_2021']
     people_counts = total_people_counts['add_data_m_d_2021']
@@ -308,9 +308,6 @@ def update_table(n_interval, date):
 
     df_21 = DATA_LOADER.last_year_df
     df_21 = get_df_by_del_date(df_21, date)
-
-    print(df.shape, 'Текущий год')
-    print(df_21.shape, 'Прошлый год')
 
     dict_22 = get_stats_by_year(df)
     dict_21 = get_stats_by_year(df_21)
