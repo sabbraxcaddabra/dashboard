@@ -311,13 +311,15 @@ check_needed = html.Div(children=[
     dcc.Download(id='check_id_last_changes'),
     dcc.Download(id='check_id_not_orig_or_agree'),
     dcc.Download(id='check_os_pravo'),
+    dcc.Download(id='check_id_not_epgu'),
     dbc.DropdownMenu(
         label='Выберите тип выгрузки',
         children=[
             dbc.DropdownMenuItem('Проверка ИД', id='check_ind_needed_button'),
             dbc.DropdownMenuItem('Проверка особого права', id='check_os_pravo_button'),
             dbc.DropdownMenuItem('Проверка Последнее изменение ЛК', id='check_id_last_change_button'),
-            dbc.DropdownMenuItem('Проверка дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button')
+            dbc.DropdownMenuItem('Проверка дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button'),
+            dbc.DropdownMenuItem('Требует проверки не ЕПГУ', id='check_id_not_epgu_button'),
         ],
         size="lg"
     ),
@@ -366,6 +368,23 @@ def get_df_by_app_type(df, app_type):
         df = df[df['original'] == 1]
 
     return df
+
+@callback(
+    Output('check_id_not_epgu', 'data'),
+    [Input('check_id_not_epgu_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_not_epgu(n_clicks):
+    query = '''
+        select ab.id from abiturient as ab join side_info on side_info.abiturient_id = ab.id
+    where ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock) and ((ab.status_id in (3, 4)
+    and if((select created_at from abiturient_progress 
+      where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
+        (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false))
+    or (ab.status_id = 3 and side_info.post_method_id != 3)) order by ab.id;
+    '''
+
+    df = DATA_LOADER.get_check_by_query(query)
+    return dcc.send_data_frame(df.to_excel, "Для_проверки_не_ЕГПУ.xlsx", sheet_name="Sheet_name_1")
 
 @callback(
     Output('check_os_pravo', 'data'),
@@ -602,8 +621,8 @@ def plot_daily_load(n, start, end, post_type, app_type, fintype, edu_level):
     people_counts = pd.value_counts(tmp_df['add_data'])
     people_counts = people_counts.sort_index()
 
-    fig = get_load_figure(counts, people_counts, '#00CC00', '#FF8500','not_cum')
-    fig_cum = get_load_figure(counts, people_counts, '#0776A0', '#FF8500', 'cum')
+    fig = get_load_figure(counts, people_counts, 'rgba(20, 162, 238, 0.7)', 'rgba(241, 50, 31, 0.7)','not_cum')
+    fig_cum = get_load_figure(counts, people_counts, 'rgba(20, 162, 238, 0.7)', 'rgba(241, 50, 31, 0.7)', 'cum')
 
     return fig, fig_cum
 

@@ -211,8 +211,8 @@ def get_load_figure(
     values, people_values, new_date, new_date_people = get_load_scater(counts, people_counts, fig_type)
     fig = go.Figure()
     fig.add_traces(data=[
-        go.Scatter(x=new_date, y=values, name='Заявления', mode='none', fill='tozeroy', fillcolor=color, opacity=0.5),
-        go.Scatter(x=new_date_people, y=people_values, name='Люди', fill='tozeroy', fillcolor=people_color, opacity=0.5)
+        go.Scatter(x=new_date, y=values, name='Заявления', mode='none', fill='tozeroy', fillcolor=color),
+        go.Scatter(x=new_date_people, y=people_values, mode='none', name='Люди', fill='tozeroy', fillcolor=people_color)
     ]
     )
 
@@ -252,8 +252,8 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
     counts = total_counts['add_data_m_d']
     people_counts = total_people_counts['add_data_m_d']
 
-    fig = get_load_figure(counts, people_counts, 'rgba(0, 204, 0, 0.7)', 'rgba(255, 133, 0, 0.7)','not_cum')
-    fig_cum = get_load_figure(counts, people_counts, 'rgba(7, 118, 160, 0.7)', 'rgba(255, 133, 0, 0.7)', 'cum')
+    fig = get_load_figure(counts, people_counts, 'rgba(20, 162, 238, 0.7)', 'rgba(241, 50, 31, 0.7)','not_cum')
+    fig_cum = get_load_figure(counts, people_counts, 'rgba(20, 162, 238, 0.7)', 'rgba(241, 50, 31, 0.7)', 'cum')
 
     counts = total_counts['add_data_m_d_2021']
     people_counts = total_people_counts['add_data_m_d_2021']
@@ -261,8 +261,8 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
     values, people_values, new_date, new_date_people = get_load_scater(counts, people_counts, fig_type='not_cum')
 
     fig.add_traces([
-        go.Scatter(x=new_date, y=values, name='Заявления 2021', mode='lines+markers', line_color='#F23911'),
-        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers')
+        go.Scatter(x=new_date, y=values, name='Заявления 2021', mode='lines+markers', line_color='rgb(0, 76, 180)'),
+        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers', line_color='rgb(188, 17, 0)')
     ])
 
     fig.update_layout(hovermode="x unified")
@@ -270,8 +270,8 @@ def plot_daily_load(date, edu_level, edu_form, fintype, post_method):
     values, people_values, new_date, new_date_people = get_load_scater(counts, people_counts, fig_type='cum')
 
     fig_cum.add_traces([
-        go.Scatter(x=new_date, y=values, name='Заявления 2021', mode='lines+markers', line_color='#F23911'),
-        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers')
+        go.Scatter(x=new_date, y=values, name='Заявления 2021', mode='lines+markers', line_color='rgb(0, 76, 180)'),
+        go.Scatter(x=new_date_people, y=people_values, name='Люди 2021', mode='lines+markers', line_color='rgb(188, 17, 0)')
     ])
     fig_cum.update_layout(hovermode="x unified")
 
