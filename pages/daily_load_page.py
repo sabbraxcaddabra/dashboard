@@ -23,16 +23,9 @@ import os
 from . import data_loader
 
 DATA_LOADER = data_loader.DailyDataLoader()
-
+DATA_LOADER.load_data()
 
 HERE = os.path.dirname(__file__)
-DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "gen_data.xlsx"))
-NEW_DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
-
-new_df = pd.read_excel(DATA_FILE)
-df = pd.read_excel(NEW_DATA_FILE)
-
-real_df = DATA_LOADER.load_data()
 
 def autofit_columns(filepath):
 
@@ -171,12 +164,14 @@ def get_type_dropdown_options(df):
     return ['Все'] + options
 
 def get_min_data():
-    min_data = real_df['add_data'].min()
+    df = DATA_LOADER.data
+    min_data = df['add_data'].min()
     min_data = datetime.datetime.strptime(min_data, 'yyyy-mm-dd')
     return min_data
 
 def get_max_data():
-    min_data = real_df['add_data'].max()
+    df = DATA_LOADER.data
+    min_data = df['add_data'].max()
     min_data = datetime.datetime.strptime(min_data, 'yyyy-mm-dd')
     return min_data
 
@@ -192,18 +187,6 @@ def get_status_z(df):  # Отрисовывает график со статус
     fig.update_layout(
         yaxis_title="Количество",
         xaxis_title="Тип статуса"
-    )
-
-    return fig
-
-def get_status_p():
-    tmp_df = pd.value_counts(new_df['status_p'])
-
-    fig = px.pie(data_frame=tmp_df, values='status_p', names=tmp_df.index,
-                 title='Статус заявления')
-
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=30, b=20),
     )
 
     return fig

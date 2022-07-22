@@ -44,15 +44,11 @@ BAC_SPEC_HEADER = HEADER + [
 
 HERE = os.path.dirname(__file__)
 
-DATA_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "stats.xlsx"))
 KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
 TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
 AVERAGE_FILE = os.path.abspath(os.path.join(HERE, ".", "average.xlsx"))
 
-df = pd.read_excel(DATA_FILE)
 df_avg: pd.DataFrame = pd.read_excel(AVERAGE_FILE)
-
-real_df = DATA_LOADER.load_data
 
 DEFAULT_DICT = {'spec_code': '00.00.00',
    'spec_name': '-',
