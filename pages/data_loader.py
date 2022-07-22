@@ -6,10 +6,25 @@ import datetime
 import os
 import json
 
+HERE = os.path.dirname(__file__)
+TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
+LAST_YEAR_DATA = os.path.abspath(os.path.join(HERE, ".", "srez21.xlsx"))
+
+
 def get_engine():
+    CONFIG_FILE = os.path.abspath(os.path.join(HERE, "..", "config.json"))
+
+    with open(CONFIG_FILE, encoding='utf-8') as config_file:
+        config_dict = json.load(config_file)
+        db_config = config_dict['db_config']
+        username = db_config['username']
+        password = db_config['password']
+        host = db_config['host']
+        db_name = db_config['db_name']
+        
     try:
         engine = create_engine(
-            'mysql+pymysql://c3h6o:2m9fpHFVa*Z*UF@172.24.129.190/arm2022'
+            f'mysql+pymysql://{username}:{password}@{host}/{db_name}'
         )
         conn = engine.connect()
         conn.close()
@@ -23,9 +38,7 @@ def get_engine():
     return engine
 
 
-HERE = os.path.dirname(__file__)
-TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
-LAST_YEAR_DATA = os.path.abspath(os.path.join(HERE, ".", "srez21.xlsx"))
+
 
 class DailyDataLoader:
     _data = None

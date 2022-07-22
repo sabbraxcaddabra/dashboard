@@ -1,9 +1,19 @@
 #! /home/sabbraxcaddabra/dash_app_env/bin/python3
 import dash
+import dash_auth
 from dash import dcc
 from dash import Input, Output, callback
 from dash import html
 import datetime
+import json
+import os
+
+HERE = os.path.dirname(__file__)
+CONFIG_FILE = os.path.abspath(os.path.join(HERE, ".", "config.json"))
+
+with open(CONFIG_FILE, encoding='utf-8') as config_file:
+    config = json.load(config_file)
+    users = config['users']
 
 import dash_bootstrap_components as dbc
 
@@ -19,6 +29,11 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_ca
                     {'name': 'viewport', 'content': 'width=device-width, initial-scale=0.7'}
                 ]
                 )
+
+auth = dash_auth.BasicAuth(
+    app,
+    users
+)
 
 server = app.server
 
