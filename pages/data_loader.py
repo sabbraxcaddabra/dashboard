@@ -152,7 +152,7 @@ class DataLoader(DailyDataLoader):
     def __init__(self):
         super(DataLoader, self).__init__()
         self._query = '''
-                select
+        select
           base.abId as 'abiturient_id', base.genId as 'gender_id', base.genN as 'gender_name', base.regId as 'region_id', 
             if(base.regId = 0, '-', (select CASE WHEN region.typename = 'г' OR region.typename = 'Респ' THEN CONCAT(region.typename, '. ', region.name) 
             ELSE CONCAT(region.name, ' ', region.typename, '.') END from region where region.id = base.regId)) as 'region_name',
@@ -171,8 +171,8 @@ class DataLoader(DailyDataLoader):
                 if(abiturient.id in (select edu_doc.abiturient_id from edu_doc where edu_doc.deleted_at is null and edu_doc.original = 1), 1, 0) as org,
                 if(concat(abiturient.id, application.id) in (select concat(consent.abiturient_id, consent.application_id) from consent where consent.deleted_at is null), 1, 0) as agr,
                 if(concat(abiturient.id, application.id) in (select concat(abiturient_id, application_id) from contract_info where status_id >= 6), 1, 0) as dog,
-                (select points from abiturient_exam where id = application_exam_cache.exam1_id) as ex1, (select points from abiturient_exam where id = application_exam_cache.exam2_id) as ex2,
-            (select points from abiturient_exam where id = application_exam_cache.exam3_id) as ex3
+                (select ifnull(checked_points, points) from abiturient_exam where id = application_exam_cache.exam1_id) as ex1, (select ifnull(checked_points, points) from abiturient_exam where id = application_exam_cache.exam2_id) as ex2,
+            (select ifnull(checked_points, points) from abiturient_exam where id = application_exam_cache.exam3_id) as ex3
           from
             application join abiturient on abiturient.id = application.abiturient_id join competitive_group on competitive_group.id = application.competitive_group_id
                 join side_info on side_info.abiturient_id = abiturient.id join gender on gender.id = side_info.gender_id join specialty on specialty.id = competitive_group.specialty_id 
