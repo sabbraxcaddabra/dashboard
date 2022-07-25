@@ -295,6 +295,7 @@ check_needed = html.Div(children=[
     dcc.Download(id='check_id_not_orig_or_agree'),
     dcc.Download(id='check_os_pravo'),
     dcc.Download(id='check_id_not_epgu'),
+    dcc.Download(id='check_epgu_snils'),
     dbc.DropdownMenu(
         label='Выберите тип выгрузки',
         children=[
@@ -303,6 +304,7 @@ check_needed = html.Div(children=[
             dbc.DropdownMenuItem('Проверка Последнее изменение ЛК', id='check_id_last_change_button'),
             dbc.DropdownMenuItem('Проверка дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button'),
             dbc.DropdownMenuItem('Требует проверки не ЕПГУ', id='check_id_not_epgu_button'),
+            dbc.DropdownMenuItem('Проверка с ЕПГУ со СНИЛС', id='check_epgu_snils_button'),
         ],
         size="lg",
         direction='end'
@@ -352,6 +354,26 @@ def get_df_by_app_type(df, app_type):
         df = df[df['original'] == 1]
 
     return df
+
+@callback(
+    Output('check_epgu_snils', 'data'),
+    [Input('check_epgu_snils_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_epgu(n_clicks):
+    query = '''
+        select
+       right(abiturient.id, if(abiturient.id >= 202210000, 5, 4)) as num, (select max(created_at) from check_record where abiturient_id = abiturient.id) as last
+         , if((select count(points) from abiturient_exam where abiturient_id = abiturient.id and deleted_at is null) > 0, 1, 0) as ex
+    from
+      abiturient join side_info on side_info.abiturient_id = abiturient.id
+    where
+      abiturient.status_id = 3 and side_info.post_method_id = 3 and abiturient.id in (select abiturient_id from application where application.deleted_at is null)
+        and abiturient.id not in (select abiturient_id from abiturient_lock) and side_info.snils is not null
+    order by ex desc;
+    '''
+
+    df = DATA_LOADER.get_check_by_query(query)
+    return dcc.send_data_frame(df.to_excel, "ЕГПУ_со_снилс.xlsx", sheet_name="Sheet_name_1")
 
 @callback(
     Output('check_id_not_epgu', 'data'),
