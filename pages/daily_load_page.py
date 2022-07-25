@@ -296,6 +296,7 @@ check_needed = html.Div(children=[
     dcc.Download(id='check_os_pravo'),
     dcc.Download(id='check_id_not_epgu'),
     dcc.Download(id='check_epgu_snils'),
+    dcc.Download(id='check_epgu_inoe'),
     dbc.DropdownMenu(
         label='Выберите тип выгрузки',
         children=[
@@ -305,6 +306,7 @@ check_needed = html.Div(children=[
             dbc.DropdownMenuItem('Проверка дел с согласием без оригинала / оригиналом без согласия', id='check_id_not_orig_or_agree_button'),
             dbc.DropdownMenuItem('Требует проверки не ЕПГУ', id='check_id_not_epgu_button'),
             dbc.DropdownMenuItem('Проверка с ЕПГУ со СНИЛС', id='check_epgu_snils_button'),
+            dbc.DropdownMenuItem('Образование "Иное ЕПГУ"', id='check_epgu_inoe_button'),
         ],
         size="lg",
         direction='end'
@@ -356,10 +358,27 @@ def get_df_by_app_type(df, app_type):
     return df
 
 @callback(
+    Output('check_epgu_inoe', 'data'),
+    [Input('check_epgu_inoe_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_epgu_inoe(n_clicks):
+    query = '''
+        select
+      edu_doc.abiturient_id
+    from
+      edu_doc join abiturient on abiturient.id = edu_doc.abiturient_id join side_info on side_info.abiturient_id = abiturient.id
+    where
+      abiturient.status_id = 2 and edu_doc.deleted_at is null and edu_doc.type_id = 10 and side_info.post_method_id = 3
+    '''
+
+    df = DATA_LOADER.get_check_by_query(query)
+    return dcc.send_data_frame(df.to_excel, "ЕГПУ_иное.xlsx", sheet_name="Sheet_name_1")
+
+@callback(
     Output('check_epgu_snils', 'data'),
     [Input('check_epgu_snils_button', 'n_clicks')], prevent_initial_call=True
 )
-def check_epgu(n_clicks):
+def check_epgu_snils(n_clicks):
     query = '''
         select
        right(abiturient.id, if(abiturient.id >= 202210000, 5, 4)) as num, (select max(created_at) from check_record where abiturient_id = abiturient.id) as last
