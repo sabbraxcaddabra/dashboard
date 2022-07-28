@@ -26,6 +26,12 @@ from . import data_loader
 DATA_LOADER = data_loader.CompareDailyLoader()
 DATA_LOADER.load_data()
 
+def get_df_by_decree_date(df, date):
+    date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+    df = df[df['dec_data'].notna()]
+    df = df[df['dec_data'] <= date]
+    return df
+
 def get_only_needed_cols(df):
 
     df = df.loc[:, ['spec_code', 'add_data', 'fintype']]
@@ -147,6 +153,7 @@ layout = html.Div(children=[
     dcc.Graph(id='compare_adm_cond_speces'), # Сравнение двух лет на каждую специальность и по типу подачи
     dcc.Graph(id='daily_load_plot_not_cum'), # Распределение по дням
     dcc.Graph(id='daily_load_plot_cum'), # Распределение по дням кумулятивное
+    dcc.Graph(id='compare_decrees_plot') # Распределение по дням кумулятивное
 ])
 
 
@@ -179,11 +186,9 @@ def get_load_scater(counts, people_counts, fig_type='not_cum'):
     if fig_type == 'cum':
         values = counts.values.cumsum()
         people_values = people_counts.cumsum()
-        title_text_yaxis = 'Суммарное число заявлений / людей'
     else:
         people_values = people_counts.values
         values = counts.values
-        title_text_yaxis = 'Число заявлений / людей'
 
     new_date = []
     new_date_people = []
@@ -199,6 +204,8 @@ def get_load_scater(counts, people_counts, fig_type='not_cum'):
         new_date_people.append('-'.join(new_dat))
 
     return values, people_values, new_date, new_date_people
+
+
 
 
 def get_load_figure(
@@ -278,12 +285,14 @@ def plot_daily_load(n, date, edu_level, edu_form, fintype, post_method):
 
     return fig, fig_cum
 
-def get_stats_by_year(df):
+def get_stats_by_year(df, df_decreed):
 
     res_dict = dict(
         n_abiturients=df.drop_duplicates('abiturient_id').shape[0],
         n_budget=df[df['fintype'] != 'С оплатой обучения'].shape[0],
         n_dou=df[df['fintype'] == 'С оплатой обучения'].shape[0],
+        n_decreed_b=df_decreed[df_decreed['fintype'] != 'С оплатой обучения'].shape[0],
+        n_decreed_k=df_decreed[df_decreed['fintype'] == 'С оплатой обучения'].shape[0],
         n_application=df.shape[0]
     )
 
@@ -312,14 +321,17 @@ def update_table(n_interval, date):
     df_21 = DATA_LOADER.last_year_df
     df_21 = get_df_by_del_date(df_21, date)
 
-    dict_22 = get_stats_by_year(df)
-    dict_21 = get_stats_by_year(df_21)
+    df_decreed = get_df_by_decree_date(df, date)
+    df_decreed_21 = get_df_by_decree_date(df_21, date)
+
+    dict_22 = get_stats_by_year(df, df_decreed)
+    dict_21 = get_stats_by_year(df_21, df_decreed_21)
 
     compare_df = pd.DataFrame(
         data={
-            '': ['Абитуриенты, чел.', 'Бюджет, заяв.', 'ДОУ, заяв.', 'Итог, заяв.'],
-            '2021': [dict_21['n_abiturients'], dict_21['n_budget'], dict_21['n_dou'], dict_21['n_application']],
-            '2022': [dict_22['n_abiturients'], dict_22['n_budget'], dict_22['n_dou'], dict_22['n_application']]
+            '': ['Абитуриенты, чел.', 'Бюджет, заяв.', 'ДОУ, заяв.', 'Зачислено бюджет, чел', 'Зачислено контракт, чел', 'Итог, заяв.'],
+            '2021': [dict_21['n_abiturients'], dict_21['n_budget'], dict_21['n_dou'], dict_21['n_decreed_b'], dict_21['n_decreed_k'], dict_21['n_application']],
+            '2022': [dict_22['n_abiturients'], dict_22['n_budget'], dict_22['n_dou'], dict_22['n_decreed_b'], dict_22['n_decreed_k'], dict_22['n_application']]
         }
     )
 
@@ -435,3 +447,71 @@ def plot_compare_adm_plot(n, date, edu_level, edu_form, fintype, post_method):
     return fig
 
 
+@callback(
+    Output('compare_decrees_plot', 'figure'),
+    [Input('update_interval', 'n_intervals'), Input('pick_a_date_single', 'date'), Input('edu_level_dropdown', 'value'), Input('edu_form', 'value'),
+     Input('type_f_dropdown', 'value'), Input('post_method_dropdown', 'value')
+     ]
+)
+def plot_compare_decree(n, date, edu_level, edu_form, fintype, post_method):
+
+    df = DATA_LOADER.data
+    df = get_ok_status(df)
+    df = filter_all(df, date, edu_level, edu_form, fintype, post_method)
+    df = get_df_by_decree_date(df, date)
+
+    df_21 = DATA_LOADER.last_year_df
+    df_21 = filter_all(df_21, date, edu_level, edu_form, fintype, post_method)
+    df_21 = get_df_by_del_date(df_21, date)
+    df_21 = get_df_by_decree_date(df_21, date)
+
+    counts = pd.value_counts(df['dec_data_m_d'])
+    counts_21 = pd.value_counts(df_21['dec_data_m_d'])
+
+    compare = pd.DataFrame(counts).join(counts_21, how='outer', rsuffix='_21').sort_index()
+
+    compare = compare.fillna(0)
+
+    compare['dec_data_m_d'] = compare['dec_data_m_d'].cumsum()
+    compare['dec_data_m_d_21'] = compare['dec_data_m_d_21'].cumsum()
+
+    fig = go.Figure()
+    fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d'], mode='lines+markers', name='Зачисленные 22',
+                                   line_color='rgba(43, 123, 231, 0.6)', fill='tozeroy'))
+    fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d_21'], mode='lines+markers', name='Зачисленные 21',
+                         line_color='rgb(142, 15, 13)'))
+
+    fig.update_layout(
+        xaxis_title="Дата",
+        yaxis_title="Кол-во зачисленных",
+    )
+
+    fig.update_layout(hovermode="x unified")
+
+    return fig
+
+
+def get_decrees_plot(index, values, **kwargs):
+
+    locate_date = {  # Переименование месяца в дате
+        '03': 'Март',
+        '04': 'Апрель',
+        '05': 'Май',
+        '07': 'Июль',
+        '06': 'Июнь',
+        '08': 'Август',
+        '09': 'Сентябрь',
+        '10': 'Октябрь',
+        '11': 'Ноябрь',
+        '12': 'Декабрь',
+
+    }
+    new_date = []
+
+    for dat in index:
+        new_dat = str(dat).split('-')
+        new_dat[0] = locate_date[new_dat[0]]
+        new_date.append('-'.join(new_dat))
+
+    fig = go.Scatter(x=new_date, y=list(values), **kwargs)
+    return fig

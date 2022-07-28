@@ -400,12 +400,10 @@ def check_epgu_snils(n_clicks):
 )
 def check_not_epgu(n_clicks):
     query = '''
-        select ab.id from abiturient as ab join side_info on side_info.abiturient_id = ab.id
-    where ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock where user_id = 6) and ((ab.status_id in (3, 4)
-    and if((select created_at from abiturient_progress 
-      where abiturient_id = ab.id and user_id = 6 order by created_at desc limit 0, 1) > 
-        (select created_at from check_record where abiturient_id = ab.id and user_id != 6 order by created_at desc limit 0, 1), true, false))
-    or (ab.status_id = 3 and side_info.post_method_id != 3)) order by ab.id;
+    select ab.id from abiturient as ab join side_info on side_info.abiturient_id = ab.id
+    where ab.id not in (select abiturient_lock.abiturient_id from abiturient_lock where user_id in (6, 54, 71, 72, 73)) and (ab.status_id in (3, 4)
+    and if((select user_id from check_record where abiturient_id = ab.id order by created_at desc limit 0, 1) = 6, true, false)
+    or (ab.status_id = 3 and side_info.post_method_id != 3)) and ab.id in (select abiturient_id from application where deleted_at is null) order by ab.id;
     '''
 
     df = DATA_LOADER.get_check_by_query(query)

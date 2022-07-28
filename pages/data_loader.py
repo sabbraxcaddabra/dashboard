@@ -46,23 +46,27 @@ class DailyDataLoader:
     _engine = get_engine()
 
     _query = """
-            select
+        select
           base.abId as 'abiturient_id', base.statId as 'status_id', base.statN as 'status_name', base.hos as 'hostel', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
             base.specP as 'profile_name', base.eduId as 'edu_level_id', base.eduN as 'edu_level', base.finId as 'fintype_id', base.finN as 'fintype', base.forId as 'edu_from_id', 
-            base.forN as 'edu_form', base.posId as 'post_method_id', base.posN as 'post_method', base.tim as 'add_data', base.org as 'original', base.agr as 'agree', base.dog as 'dogovor'
+            base.forN as 'edu_form', base.posId as 'post_method_id', base.posN as 'post_method', base.tim as 'add_data', base.org as 'original', base.agr as 'agree', base.dog as 'dogovor',
+            base.decNum as 'decree_num', base.decData as 'dec_data'
         from 
         (select
             abiturient.id as abId, abiturient_status.id as statId, abiturient_status.name as statN, side_info.hostel as hos, specialty.id as specId, specialty.name as specN, specialty.code as specC, 
                 specialty_profile.name as specP, edulevel.id as eduId, edulevel.name as eduN, fintype.id as finId, fintype.name as finN, eduform.id as forId, eduform.name as forN, post_method.id as posId, post_method.name as posN, application.add_time as tim,
                 if(abiturient.id in (select edu_doc.abiturient_id from edu_doc where edu_doc.deleted_at is null and edu_doc.original = 1), 1, 0) as org,
                 if(concat(abiturient.id, application.id) in (select concat(consent.abiturient_id, consent.application_id) from consent where consent.deleted_at is null), 1, 0) as agr,
-                if(concat(abiturient.id, application.id) in (select concat(abiturient_id, application_id) from contract_info where status_id >= 6), 1, 0) as dog
+                if(concat(abiturient.id, application.id) in (select concat(abiturient_id, application_id) from contract_info where status_id >= 6), 1, 0) as dog,
+                decree.number as decNum, decree.date as decData
           from
             application join abiturient on abiturient.id = application.abiturient_id join competitive_group on competitive_group.id = application.competitive_group_id
                 join abiturient_status on abiturient_status.id = abiturient.status_id join side_info on side_info.abiturient_id = abiturient.id
                 join specialty on specialty.id = competitive_group.specialty_id left join specialty_profile on specialty_profile.id = competitive_group.profile_id
                 join edulevel on edulevel.id = competitive_group.edulevel_id join fintype on fintype.id = competitive_group.fintype_id
                 join eduform on eduform.id = competitive_group.eduform_id join post_method on side_info.post_method_id = post_method.id
+                left join enrolled on enrolled.abiturient_id = abiturient.id and enrolled.application_id = application.id and enrolled.status_id = 1
+                left join decree on decree.id = enrolled.decree_id
           where
             application.deleted_at is null  and abiturient.id not in (select abiturient_id from abiturient_lock where user_id = 6)
         ) as base
@@ -94,13 +98,16 @@ class DailyDataLoader:
         # )
 
         connection = self._engine.connect()
-        df = pd.read_sql(self._query, connection, parse_dates={'add_data': '%Y/%m/%d'})
+        df = pd.read_sql(self._query, connection, parse_dates={'add_data': '%Y/%m/%d', 'dec_data': '%Y/%m/%d'})
         df['orig_and_agree'] = df.apply(lambda row: self.get_orig_and_agree(row['fintype'], row['original'], row['agree'], row['dogovor']), axis=1)
         df['spec_name'] = df.apply(
             lambda row: self.get_true_spec(row['edu_level'], row['spec_name'], row['profile_name']), axis=1)
 
         if 'add_data' in df.columns:
             df['add_data'] = df['add_data'].dt.date
+
+        if 'dec_data' in df.columns:
+            df['dec_data'] = df['dec_data'].dt.date
 
         connection.close()
 
@@ -130,20 +137,19 @@ class CompareDailyLoader(DailyDataLoader):
         self.last_year_df: pd.DataFrame = pd.read_excel(LAST_YEAR_DATA, parse_dates=True)
         self.last_year_df['add_data'] = pd.to_datetime(self.last_year_df['add_data'])
         self.last_year_df['del_data'] = pd.to_datetime(self.last_year_df['del_data'])
-        self.last_year_df['add_data'] = self.last_year_df['add_data'].apply(lambda date: date.replace(year=2022))
-        self.last_year_df['del_data'] = self.last_year_df['del_data'].apply(lambda date: date.replace(year=2022))
+        self.last_year_df['dec_data'] = pd.to_datetime(self.last_year_df['dec_data'])
         self.last_year_df['add_data'] = self.last_year_df['add_data'].dt.date
         self.last_year_df['del_data'] = self.last_year_df['del_data'].dt.date
-        # self.last_year_df['add_data'] = self.last_year_df['add_data'].apply(lambda date: self.replace_year(date))
-        # self.last_year_df['del_data'] = self.last_year_df['del_data'].apply(lambda date: self.replace_year(date))
+        self.last_year_df['dec_data'] = self.last_year_df['dec_data'].dt.date
         self.last_year_df['add_data_m_d'] = pd.to_datetime(self.last_year_df['add_data']).dt.strftime('%m-%d')
         self.last_year_df['del_data_m_d'] = pd.to_datetime(self.last_year_df['del_data']).dt.strftime('%m-%d')
-
+        self.last_year_df['dec_data_m_d'] = pd.to_datetime(self.last_year_df['dec_data']).dt.strftime('%m-%d')
 
     def load_data(self) -> pd.DataFrame:
         super().load_data()
 
         self._data['add_data_m_d'] = pd.to_datetime(self._data['add_data']).dt.strftime('%m-%d')
+        self._data['dec_data_m_d'] = pd.to_datetime(self._data['dec_data']).dt.strftime('%m-%d')
         return self.data
 
 
@@ -212,7 +218,7 @@ if __name__ == '__main__':
     DAILY_DATA_LOADER = DailyDataLoader()
     DATA_LOADER = DataLoader()
     LAST_DATA_LOADER = CompareDailyLoader()
-    df = DAILY_DATA_LOADER.load_data()
+    df = LAST_DATA_LOADER.load_data()
     df_bal = DATA_LOADER.load_data()
     df_last = LAST_DATA_LOADER.last_year_df
 
