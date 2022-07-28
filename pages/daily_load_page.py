@@ -297,6 +297,7 @@ check_needed = html.Div(children=[
     dcc.Download(id='check_id_not_epgu'),
     dcc.Download(id='check_epgu_snils'),
     dcc.Download(id='check_epgu_inoe'),
+    dcc.Download(id='check_epgu_id_otl'),
     dbc.DropdownMenu(
         label='Выберите тип выгрузки',
         children=[
@@ -307,6 +308,7 @@ check_needed = html.Div(children=[
             dbc.DropdownMenuItem('Требует проверки не ЕПГУ', id='check_id_not_epgu_button'),
             dbc.DropdownMenuItem('Проверка с ЕПГУ со СНИЛС', id='check_epgu_snils_button'),
             dbc.DropdownMenuItem('Образование "Иное ЕПГУ"', id='check_epgu_inoe_button'),
+            dbc.DropdownMenuItem('Проверка ЕПГУ ИД "С отличием"', id='check_epgu_id_otl_button'),
         ],
         size="lg",
         direction='end'
@@ -356,6 +358,25 @@ def get_df_by_app_type(df, app_type):
         df = df[df['original'] == 1]
 
     return df
+
+@callback(
+    Output('check_epgu_id_otl', 'data'),
+    [Input('check_epgu_id_otl_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_epgu_id_otl(n_clicks):
+    query = '''
+        select
+      abiturient.id
+    from
+      abiturient join side_info on side_info.abiturient_id = abiturient.id
+    where
+      side_info.post_method_id = 3 and abiturient.status_id != 1 and abiturient.id in (select ach.abiturient_id from achievement as ach join abiturient as ab on ab.id = ach.abiturient_id
+        where ach.deleted_at is null and ach.type_id in (6, 7, 20)
+        and (select concat(user_id, ' ', 1) from check_record where abiturient_id = ab.id and record_type = 'achievement' and ach.id = record_id order by created_at desc limit 0, 1) like '%% 1')
+    '''
+
+    df = DATA_LOADER.get_check_by_query(query)
+    return dcc.send_data_frame(df.to_excel, "ЕПГУ ИД  'С отличием'.xlsx", sheet_name="Sheet_name_1")
 
 @callback(
     Output('check_epgu_inoe', 'data'),
