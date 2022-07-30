@@ -298,6 +298,7 @@ check_needed = html.Div(children=[
     dcc.Download(id='check_epgu_snils'),
     dcc.Download(id='check_epgu_inoe'),
     dcc.Download(id='check_epgu_id_otl'),
+    dcc.Download(id='check_epgu_script'),
     dbc.DropdownMenu(
         label='Выберите тип выгрузки',
         children=[
@@ -309,6 +310,7 @@ check_needed = html.Div(children=[
             dbc.DropdownMenuItem('Проверка с ЕПГУ со СНИЛС', id='check_epgu_snils_button'),
             dbc.DropdownMenuItem('Образование "Иное ЕПГУ"', id='check_epgu_inoe_button'),
             dbc.DropdownMenuItem('Проверка ЕПГУ ИД "С отличием"', id='check_epgu_id_otl_button'),
+            dbc.DropdownMenuItem('Последние изменения СКРИПТ ЕПГУ', id='check_epgu_script_button'),
         ],
         size="lg",
         direction='end'
@@ -358,6 +360,22 @@ def get_df_by_app_type(df, app_type):
         df = df[df['original'] == 1]
 
     return df
+
+@callback(
+    Output('check_epgu_script', 'data'),
+    [Input('check_epgu_script_button', 'n_clicks')], prevent_initial_call=True
+)
+def check_epgu_script(n_clicks):
+    query = '''
+    select  ab.id, if((select count(id) from application where abiturient_id = ab.id and deleted_at is null) > 0, 1, 0) as apps
+    from abiturient as ab
+    where (select user_id from check_record where abiturient_id = ab.id order by created_at desc limit 0, 1) = 54 and ab.status_id not in (1, 2, 4) and ab.id not in
+    (select abiturient_id from abiturient_lock)
+    '''
+
+    df = DATA_LOADER.get_check_by_query(query)
+    return dcc.send_data_frame(df.to_excel, "Последнее изменение СКРИПТ ЕПГУ.xlsx", sheet_name="Sheet_name_1")
+
 
 @callback(
     Output('check_epgu_id_otl', 'data'),
