@@ -596,7 +596,13 @@ def get_load_figure(counts, people_counts, color, people_color, fig_type='not_cu
         '04': 'Апрель',
         '05': 'Май',
         '07': 'Июль',
-        '06': 'Июнь'
+        '06': 'Июнь',
+        '08': 'Август',
+        '09': 'Сентябрь',
+        '10': 'Октябрь',
+        '11': 'Ноябрь',
+        '12': 'Декабрь',
+
     }
 
     counts = counts.sort_index()

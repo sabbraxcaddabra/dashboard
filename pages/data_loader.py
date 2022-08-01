@@ -47,13 +47,13 @@ class DailyDataLoader:
 
     _query = """
         select
-          base.abId as 'abiturient_id', base.statId as 'status_id', base.statN as 'status_name', base.hos as 'hostel', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
+          base.app_id, base.abId as 'abiturient_id', base.statId as 'status_id', base.statN as 'status_name', base.hos as 'hostel', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
             base.specP as 'profile_name', base.eduId as 'edu_level_id', base.eduN as 'edu_level', base.finId as 'fintype_id', base.finN as 'fintype', base.forId as 'edu_from_id', 
             base.forN as 'edu_form', base.posId as 'post_method_id', base.posN as 'post_method', base.tim as 'add_data', base.org as 'original', base.agr as 'agree', base.dog as 'dogovor',
             base.decNum as 'decree_num', base.decData as 'dec_data'
         from 
         (select
-            abiturient.id as abId, abiturient_status.id as statId, abiturient_status.name as statN, side_info.hostel as hos, specialty.id as specId, specialty.name as specN, specialty.code as specC, 
+            application.id as app_id, abiturient.id as abId, abiturient_status.id as statId, abiturient_status.name as statN, side_info.hostel as hos, specialty.id as specId, specialty.name as specN, specialty.code as specC, 
                 specialty_profile.name as specP, edulevel.id as eduId, edulevel.name as eduN, fintype.id as finId, fintype.name as finN, eduform.id as forId, eduform.name as forN, post_method.id as posId, post_method.name as posN, application.add_time as tim,
                 if(abiturient.id in (select edu_doc.abiturient_id from edu_doc where edu_doc.deleted_at is null and edu_doc.original = 1), 1, 0) as org,
                 if(concat(abiturient.id, application.id) in (select concat(consent.abiturient_id, consent.application_id) from consent where consent.deleted_at is null), 1, 0) as agr,
@@ -159,7 +159,7 @@ class DataLoader(DailyDataLoader):
         super(DataLoader, self).__init__()
         self._query = '''
         select
-          base.abId as 'abiturient_id', base.genId as 'gender_id', base.genN as 'gender_name', base.regId as 'region_id', 
+          base.app_id, base.abId as 'abiturient_id', base.genId as 'gender_id', base.genN as 'gender_name', base.regId as 'region_id', 
             if(base.regId = 0, '-', (select CASE WHEN region.typename = 'г' OR region.typename = 'Респ' THEN CONCAT(region.typename, '. ', region.name) 
             ELSE CONCAT(region.name, ' ', region.typename, '.') END from region where region.id = base.regId)) as 'region_name',
           base.conId as 'country_id', (select country.name from country where country.id = base.conId) as 'country_name', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
@@ -168,7 +168,7 @@ class DataLoader(DailyDataLoader):
             ifnull(base.ex2, 0) as 'disc_point2', ifnull(base.ex3, 0) as 'disc_point3'
         from 
         (select
-            abiturient.id as abId, gender.id as genId, gender.name as genN, ifnull((select region.id from address join region on region.id = address.region_id 
+            application.id as app_id, abiturient.id as abId, gender.id as genId, gender.name as genN, ifnull((select region.id from address join region on region.id = address.region_id 
               where abiturient.id = address.abiturient_id and address.deleted_at is null order by region.id limit 0, 1), 0) as regId,
             ifnull((select country.id from identity_doc join country on country.id = identity_doc.citizenship_id 
               where abiturient.id = identity_doc.abiturient_id and identity_doc.deleted_at is null order by country.id limit 0, 1), 0) as conId,
