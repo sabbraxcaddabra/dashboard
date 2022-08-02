@@ -202,8 +202,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
         style_cell={'font_size': '14px',
                     'text_align': 'center'
                     },
-        sort_action="native",
-        sort_mode='multi'
+        sort_action="native"
     )
 
     return fig, table
