@@ -176,14 +176,21 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     grouped_sogl = grouped_sogl.sort_values(['level_code', 'spec_code'], ascending=False)
     grouped_sogl['spec_name_1'] = grouped_sogl.apply(lambda row: f'{row["spec_name"]} {row["spec_code"]}', axis=1)
 
+    if fintype == 'Контракт':
+        hover_data = ['kcp', 'kcp_p', 'orig_and_agree']
+    else:
+        hover_data = ['kcp', 'kcp_p', 'orig_and_agree', 'min_point']
+
     fig = px.bar(grouped_sogl, y='spec_name_1', x=['Заполняемость', 'Остаток'], orientation='h',
-                 hover_data=['kcp', 'kcp_p', 'orig_and_agree'],
+                 hover_data=hover_data,
                  labels={'variable': 'Переменная',
                          'value': 'Значение, %',
                          'spec_name_1': 'Название специальности',
                          'kcp': labels[0],
                          'kcp_p': labels[1],
-                         'orig_and_agree': 'Согласий с оригиналом'}
+                         'orig_and_agree': 'Согласий с оригиналом',
+                         'min_point': 'Минимальный балл'
+                         }
                  )
 
     plot_h = grouped_sogl.shape[0] * 30
