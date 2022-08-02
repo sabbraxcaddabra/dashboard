@@ -135,19 +135,24 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
 
     grouped = enrolled.groupby('spec_name', as_index=False).agg({'app_id':'count'})
 
-    grouped_sogl = grouped_sogl.merge(grouped, on='spec_name')
+    grouped_sogl = grouped_sogl.merge(grouped, how='left', on='spec_name')
+    grouped_sogl = grouped_sogl.fillna(0.)
+
     grouped_sogl['kcp_p'] = grouped_sogl['kcp'] - grouped_sogl['app_id']
     grouped_sogl = grouped_sogl[grouped_sogl['kcp'] > 0]
     grouped_sogl['Отношение кол-ва согласий к КЦП'] = grouped_sogl['orig_and_agree'] / grouped_sogl['kcp_p']
-    grouped_sogl['Отношение кол-ва согласий к КЦП'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: x if x < 1. else 1.)
-    grouped_sogl['Запас'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: 1. - x)
+    grouped_sogl['Отношение кол-ва согласий к КЦП'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: x if x < 1. else 1.) * 100
+    grouped_sogl['Запас'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: 100. - x)
+
+    grouped_sogl['Отношение кол-ва согласий к КЦП'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: round(x, 1))
+    grouped_sogl['Запас'] = grouped_sogl['Запас'].apply(lambda x: round(x, 1))
 
     grouped_sogl = grouped_sogl.sort_values('Отношение кол-ва согласий к КЦП')
 
     fig = px.bar(grouped_sogl, y='spec_name', x=['Отношение кол-ва согласий к КЦП', 'Запас'], orientation='h',
                  hover_data=['kcp', 'kcp_p', 'orig_and_agree'],
                  labels={'variable': 'Переменная',
-                         'value': 'Значение',
+                         'value': 'Значение, %',
                          'spec_name': 'Название специальности',
                          'kcp': 'КЦП',
                          'kcp_p': 'Основные конкурсные места',
