@@ -56,7 +56,7 @@ report_type = html.Div(children=[
     html.H2('Тип отчета'),
     dcc.Dropdown(
         id='report_type',
-        options=['Деканское', 'Ежедневный отчет', 'Сравнение с ПК 2021', 'Заполняемость'], value='Деканское', clearable=False
+        options=['Заполняемость', 'Деканское', 'Ежедневный отчет', 'Сравнение с ПК 2021'], value='Заполняемость', clearable=False
     ),
     html.Br(),
 ])

@@ -46,6 +46,10 @@ def unify_kcp(kcp_dict):
 
     return bak
 
+def get_edu_level(spec_code):
+    splitted = spec_code.split('.')
+    return splitted[1]
+
 def get_kcp_dict_by_edu_level(edu_level): # Словарь на уровень образование(внутри ключи - формы обучения, значения - словарь со специальностями)
     if edu_level != 'Магистратура':
         return unify_kcp(DATA_LOADER.total_kcp_dict)
@@ -130,7 +134,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     }
     fintype = fintype_dict[fintype]
 
-    grouped_sogl = df.groupby('spec_name', as_index=False).agg({'orig_and_agree': 'sum'})
+    grouped_sogl = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'orig_and_agree': 'sum'})
     grouped_sogl['kcp'] = grouped_sogl.apply(lambda row: kcp_dict[row['spec_name']][fintype], axis=1)
 
     grouped = enrolled.groupby('spec_name', as_index=False).agg({'app_id':'count'})
@@ -140,16 +144,18 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
 
     grouped_sogl['kcp_p'] = grouped_sogl['kcp'] - grouped_sogl['app_id']
     grouped_sogl = grouped_sogl[grouped_sogl['kcp'] > 0]
-    grouped_sogl['Отношение кол-ва согласий к КЦП'] = grouped_sogl['orig_and_agree'] / grouped_sogl['kcp_p']
-    grouped_sogl['Отношение кол-ва согласий к КЦП'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: x if x < 1. else 1.) * 100
-    grouped_sogl['Запас'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: 100. - x)
+    grouped_sogl['Заполняемость'] = grouped_sogl['orig_and_agree'] / grouped_sogl['kcp_p']
+    grouped_sogl['Заполняемость'] = grouped_sogl['Заполняемость'].apply(lambda x: x if x < 1. else 1.) * 100
+    grouped_sogl['Остаток'] = grouped_sogl['Заполняемость'].apply(lambda x: 100. - x)
 
-    grouped_sogl['Отношение кол-ва согласий к КЦП'] = grouped_sogl['Отношение кол-ва согласий к КЦП'].apply(lambda x: round(x, 1))
-    grouped_sogl['Запас'] = grouped_sogl['Запас'].apply(lambda x: round(x, 1))
+    grouped_sogl['Заполняемость'] = grouped_sogl['Заполняемость'].apply(lambda x: round(x, 1))
+    grouped_sogl['Остаток'] = grouped_sogl['Остаток'].apply(lambda x: round(x, 1))
 
-    grouped_sogl = grouped_sogl.sort_values('Отношение кол-ва согласий к КЦП')
+    grouped_sogl['level_code'] = grouped_sogl['spec_code'].apply(get_edu_level)
+    grouped_sogl = grouped_sogl.sort_values(['level_code', 'spec_code'], ascending=False)
+    grouped_sogl['spec_name'] = grouped_sogl.apply(lambda row: f'{row["spec_name"]} {row["spec_code"]}', axis=1)
 
-    fig = px.bar(grouped_sogl, y='spec_name', x=['Отношение кол-ва согласий к КЦП', 'Запас'], orientation='h',
+    fig = px.bar(grouped_sogl, y='spec_name', x=['Заполняемость', 'Остаток'], orientation='h',
                  hover_data=['kcp', 'kcp_p', 'orig_and_agree'],
                  labels={'variable': 'Переменная',
                          'value': 'Значение, %',
@@ -165,7 +171,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     fig.update_layout(
         height=plot_h,
         yaxis_title='Название специальности',
-        xaxis_title="Отношение кол-ва согласий к кол-ву свободных мест"
+        xaxis_title="Заполняемость, %"
     )
 
     fig.update_traces(
