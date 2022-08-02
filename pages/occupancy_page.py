@@ -103,12 +103,13 @@ control_elements = html.Div(children=[
 
 layout = html.Div(children=[
     control_elements,
-    dcc.Graph(id='sogl_kcp_ratio_')
+    dcc.Graph(id='sogl_kcp_ratio_'),
+    html.Div(id='zapol_table')
 ])
 
 
 @callback(
-    Output('sogl_kcp_ratio_', 'figure'),
+    [Output('sogl_kcp_ratio_', 'figure'), Output('zapol_table', 'children')],
     [Input('load_data_interval', 'n_intervals'), Input('edu_level_occ', 'value'), Input('edu_form_occ', 'value'),
      Input('fintype_occ', 'value')
      ]
@@ -153,13 +154,13 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
 
     grouped_sogl['level_code'] = grouped_sogl['spec_code'].apply(get_edu_level)
     grouped_sogl = grouped_sogl.sort_values(['level_code', 'spec_code'], ascending=False)
-    grouped_sogl['spec_name'] = grouped_sogl.apply(lambda row: f'{row["spec_name"]} {row["spec_code"]}', axis=1)
+    grouped_sogl['spec_name_1'] = grouped_sogl.apply(lambda row: f'{row["spec_name"]} {row["spec_code"]}', axis=1)
 
-    fig = px.bar(grouped_sogl, y='spec_name', x=['Заполняемость', 'Остаток'], orientation='h',
+    fig = px.bar(grouped_sogl, y='spec_name_1', x=['Заполняемость', 'Остаток'], orientation='h',
                  hover_data=['kcp', 'kcp_p', 'orig_and_agree'],
                  labels={'variable': 'Переменная',
                          'value': 'Значение, %',
-                         'spec_name': 'Название специальности',
+                         'spec_name_1': 'Название специальности',
                          'kcp': 'КЦП',
                          'kcp_p': 'Основные конкурсные места',
                          'orig_and_agree': 'Согласий с оригиналом'}
@@ -183,4 +184,26 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
         )
     )
 
-    return fig
+    grouped_sogl = grouped_sogl.rename(
+        columns={
+            'spec_name': 'Название специальности',
+            'kcp_p': 'Основные конкурсные места',
+            'spec_code': 'Код специальности',
+            'Заполняемость': 'Заполняемость, %',
+            'Остаток': 'Остаток, %'
+        }
+    )
+
+    grouped_sogl = grouped_sogl.loc[:, ['Название специальности', 'Код специальности', 'Основные конкурсные места', 'Заполняемость, %', 'Остаток, %']]
+    grouped_sogl = grouped_sogl.sort_values(['Название специальности', 'Код специальности'], ascending=False)
+
+    table = dash.dash_table.DataTable(
+        data=grouped_sogl.to_dict('records'),
+        style_cell={'font_size': '14px',
+                    'text_align': 'center'
+                    },
+        sort_action="native",
+        sort_mode='multi'
+    )
+
+    return fig, table
