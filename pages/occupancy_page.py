@@ -189,7 +189,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
                          'kcp': labels[0],
                          'kcp_p': labels[1],
                          'orig_and_agree': 'Согласий с оригиналом',
-                         'min_point': 'Минимальный балл'
+                         'min_point': 'Проходной балл'
                          }
                  )
 
@@ -215,7 +215,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
         columns={
             'spec_name': 'Название специальности',
             'kcp_p': labels[1],
-            'min_point': 'Проходной балл балл',
+            'min_point': 'Проходной балл',
             'spec_code': 'Код специальности',
             'Заполняемость': 'Заполняемость, %',
             'Остаток': 'Остаток, %'
@@ -225,7 +225,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     if fintype == 'Контракт':
         loc_list = ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %']
     else:
-        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %', 'Минимальный балл']
+        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %', 'Проходной балл']
 
     grouped_sogl = grouped_sogl.loc[:, loc_list]
     grouped_sogl = grouped_sogl.sort_values(['Название специальности', 'Код специальности'], ascending=False)
