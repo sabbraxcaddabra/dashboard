@@ -85,11 +85,12 @@ class DailyDataLoader:
             return spec_name
         return profile_name
 
-    def get_orig_and_agree(self, fintype, original, agree, dogovor):
+    def get_orig_and_agree(self, fintype, post_method, original, agree, dogovor):
         if fintype != 'С оплатой обучения':
+            if post_method == 'Подано через ЕПГУ':
+                return agree
             return original * agree
-        else:
-            return agree * dogovor
+        return agree * dogovor
 
     def load_data(self) -> pd.DataFrame:
 
@@ -99,7 +100,7 @@ class DailyDataLoader:
 
         connection = self._engine.connect()
         df = pd.read_sql(self._query, connection, parse_dates={'add_data': '%Y/%m/%d', 'dec_data': '%Y/%m/%d'})
-        df['orig_and_agree'] = df.apply(lambda row: self.get_orig_and_agree(row['fintype'], row['original'], row['agree'], row['dogovor']), axis=1)
+        df['orig_and_agree'] = df.apply(lambda row: self.get_orig_and_agree(row['fintype'], row['post_method'], row['original'], row['agree'], row['dogovor']), axis=1)
         df['spec_name'] = df.apply(
             lambda row: self.get_true_spec(row['edu_level'], row['spec_name'], row['profile_name']), axis=1)
 
@@ -187,7 +188,7 @@ from
 		join application_exam_cache on application_exam_cache.application_id = application.id
 		left join enrolled on enrolled.abiturient_id = abiturient.id and enrolled.application_id = application.id and enrolled.status_id = 1
   where
-	application.deleted_at is null and abiturient.status_id = 2 and abiturient.id not in (select abiturient_id from abiturient_lock where user_id = 6)
+	application.deleted_at is null and abiturient.status_id = 2 and abiturient.id not in (select abiturient_id from abiturient_lock where user_id = 6) and competitive_group.campaign_id != 3
 ) as base
 limit 0, 100000;
         '''
@@ -207,6 +208,8 @@ limit 0, 100000;
         df = super().load_data()
 
         df['point_mean'] = df.apply(lambda row: self.get_mean_point(row['edu_level'], row['disc_point1'], row['disc_point2'], row['disc_point3']), axis=1)
+
+        df['point_sum'] = df['disc_point1'] + df['disc_point2'] + df['disc_point3']
         self._data = df
         self._load_date = datetime.datetime.now()
         self.load_kcp()

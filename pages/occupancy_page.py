@@ -108,6 +108,17 @@ layout = html.Div(children=[
 ])
 
 
+def get_minimum_bal(df: pd.DataFrame, spec_name, kcp_p):
+    df = df[df['spec_name'] == spec_name]
+    df = df[df['orig_and_agree'] == 1]
+    df = df[df['app_id'].isna()]
+    df = df.sort_values('point_sum', ascending=False)
+    if df.shape[0] > kcp_p:
+        df = df.iloc[:int(kcp_p)]
+        return df['point_sum'].min()
+    else:
+        return df['point_sum'].min()
+
 @callback(
     [Output('sogl_kcp_ratio_', 'figure'), Output('zapol_table', 'children')],
     [Input('load_data_interval', 'n_intervals'), Input('edu_level_occ', 'value'), Input('edu_form_occ', 'value'),
@@ -141,10 +152,10 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
 
     labels = labels_dict[fintype]
 
-    fintype = fintype_dict[fintype]
+    fintype_ = fintype_dict[fintype]
 
     grouped_sogl = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'orig_and_agree': 'sum'})
-    grouped_sogl['kcp'] = grouped_sogl.apply(lambda row: kcp_dict[row['spec_name']][fintype], axis=1)
+    grouped_sogl['kcp'] = grouped_sogl.apply(lambda row: kcp_dict[row['spec_name']][fintype_], axis=1)
 
     grouped = enrolled.groupby('spec_name', as_index=False).agg({'app_id':'count'})
 
@@ -152,6 +163,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     grouped_sogl = grouped_sogl.fillna(0.)
 
     grouped_sogl['kcp_p'] = grouped_sogl['kcp'] - grouped_sogl['app_id']
+    grouped_sogl['min_point'] = grouped_sogl.apply(lambda row: get_minimum_bal(df, row['spec_name'], row['kcp_p']), axis=1)
     grouped_sogl = grouped_sogl[grouped_sogl['kcp'] > 0]
     grouped_sogl['Заполняемость'] = grouped_sogl['orig_and_agree'] / grouped_sogl['kcp_p']
     grouped_sogl['Заполняемость'] = grouped_sogl['Заполняемость'].apply(lambda x: x if x < 1. else 1.) * 100
@@ -196,13 +208,19 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
         columns={
             'spec_name': 'Название специальности',
             'kcp_p': labels[1],
+            'min_point': 'Минимальный балл',
             'spec_code': 'Код специальности',
             'Заполняемость': 'Заполняемость, %',
             'Остаток': 'Остаток, %'
         }
     )
 
-    grouped_sogl = grouped_sogl.loc[:, ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %']]
+    if fintype == 'Контракт':
+        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %']
+    else:
+        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %', 'Минимальный балл']
+
+    grouped_sogl = grouped_sogl.loc[:, loc_list]
     grouped_sogl = grouped_sogl.sort_values(['Название специальности', 'Код специальности'], ascending=False)
 
     table = dash.dash_table.DataTable(
