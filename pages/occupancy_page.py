@@ -215,7 +215,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
         columns={
             'spec_name': 'Название специальности',
             'kcp_p': labels[1],
-            'min_point': 'Минимальный балл',
+            'min_point': 'Проходной балл балл',
             'spec_code': 'Код специальности',
             'Заполняемость': 'Заполняемость, %',
             'Остаток': 'Остаток, %'
