@@ -133,6 +133,14 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
         'Бюджет': 'kcp_b_all',
         'Контракт': 'kcp_k_all'
     }
+
+    labels_dict = {
+        'Бюджет': ['КЦП', 'Основные конкурсные места'],
+        'Контракт': ['ДОУ', 'Оставшиеся места']
+    }
+
+    labels = labels_dict[fintype]
+
     fintype = fintype_dict[fintype]
 
     grouped_sogl = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'orig_and_agree': 'sum'})
@@ -161,8 +169,8 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
                  labels={'variable': 'Переменная',
                          'value': 'Значение, %',
                          'spec_name_1': 'Название специальности',
-                         'kcp': 'КЦП',
-                         'kcp_p': 'Основные конкурсные места',
+                         'kcp': labels[0],
+                         'kcp_p': labels[1],
                          'orig_and_agree': 'Согласий с оригиналом'}
                  )
 
@@ -187,14 +195,14 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     grouped_sogl = grouped_sogl.rename(
         columns={
             'spec_name': 'Название специальности',
-            'kcp_p': 'Основные конкурсные места',
+            'kcp_p': labels[1],
             'spec_code': 'Код специальности',
             'Заполняемость': 'Заполняемость, %',
             'Остаток': 'Остаток, %'
         }
     )
 
-    grouped_sogl = grouped_sogl.loc[:, ['Название специальности', 'Код специальности', 'Основные конкурсные места', 'Заполняемость, %', 'Остаток, %']]
+    grouped_sogl = grouped_sogl.loc[:, ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %']]
     grouped_sogl = grouped_sogl.sort_values(['Название специальности', 'Код специальности'], ascending=False)
 
     table = dash.dash_table.DataTable(
