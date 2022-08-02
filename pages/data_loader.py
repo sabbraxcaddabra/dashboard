@@ -7,7 +7,7 @@ import os
 import json
 
 HERE = os.path.dirname(__file__)
-TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
+TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "../data/total_kcp.json"))
 LAST_YEAR_DATA = os.path.abspath(os.path.join(HERE, ".", "srez21.xlsx"))
 
 
@@ -108,8 +108,6 @@ class DailyDataLoader:
 
         if 'dec_data' in df.columns:
             df['dec_data'] = df['dec_data'].dt.date
-
-        enrolled = pd.read_sql('select application_id as app_id from enrolled;', connection)
 
         connection.close()
 

@@ -45,7 +45,7 @@ BAC_SPEC_HEADER = HEADER + [
 HERE = os.path.dirname(__file__)
 
 KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "kcp.json"))
-TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "total_kcp.json"))
+TOTAL_KCP_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "../data/total_kcp.json"))
 AVERAGE_FILE = os.path.abspath(os.path.join(HERE, ".", "average.xlsx"))
 
 df_avg: pd.DataFrame = pd.read_excel(AVERAGE_FILE)
@@ -664,42 +664,5 @@ def get_gender_plot(edu_level, spec_name):
     )
 
     return fig
-
-
-
-@callback(
-    Output('sogl_kcp_ratio', 'figure'),
-    [Input('load_data_interval', 'n_intervals'), Input('edu_level', 'value'), Input('edu_form', 'value')]
-)
-def plot_kcp_ratio(n, edu_level, edu_form):
-    df = DATA_LOADER.data
-    enrolled = df[df['app_id'].notna()]
-
-    df = get_df_by_edu_level(df, edu_level)
-    df = get_df_by_edu_form(df, edu_form)
-    df = get_df_by_fintype(df, 'Бюджет')
-
-    kcp_dict = get_kcp_dict_by_edu_level(edu_level)
-    kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, edu_form)
-
-    enrolled = get_df_by_edu_level(enrolled, edu_level)
-    enrolled = get_df_by_edu_form(enrolled, edu_form)
-    enrolled = get_df_by_fintype(enrolled, 'Бюджет')
-
-    fintype = 'kcp_b_all'
-
-    grouped_sogl = df.groupby('spec_name', as_index=False).agg({'orig_and_agree': 'sum'})
-    grouped_sogl['kcp'] = grouped_sogl.apply(lambda row: kcp_dict[row['spec_name']][fintype], axis=1)
-
-    grouped = enrolled.groupby('spec_name', as_index=False).agg({'app_id':'count'})
-
-    grouped_sogl = grouped_sogl.merge(grouped, on='spec_name')
-    grouped_sogl['kcp_p'] = grouped_sogl['kcp'] - grouped_sogl['app_id']
-    grouped_sogl = grouped_sogl[grouped_sogl['kcp'] > 0]
-    grouped_sogl['kcp_ratio'] = grouped_sogl['orig_and_agree'] / grouped_sogl['kcp_p']
-
-    print(grouped_sogl.loc[:, ['kcp_p', 'kcp']])
-
-    return go.Figure()
 
 

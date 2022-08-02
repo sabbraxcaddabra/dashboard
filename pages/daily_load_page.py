@@ -179,8 +179,6 @@ def get_status_z(df):  # Отрисовывает график со статус
 
     df = df.drop_duplicates(subset=['abiturient_id'])
 
-    df.to_excel('status.xlsx')
-
     fig = px.histogram(data_frame=df, x='status_name', color='status_name')
     fig.update_layout(legend_title_text='Статус заявления')
 
