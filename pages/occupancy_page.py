@@ -83,7 +83,7 @@ def get_df_by_fintype(tmp_df, fintype):
 
 
 control_elements = html.Div(children=[
-    dcc.Interval(id='load_data_interval', interval=300e3),
+    dcc.Interval(id='load_data_interval_', interval=300e3),
     html.Br(),
     dbc.Row(children=[
         dbc.Col(children=[
@@ -121,11 +121,12 @@ def get_minimum_bal(df: pd.DataFrame, spec_name, kcp_p):
 
 @callback(
     [Output('sogl_kcp_ratio_', 'figure'), Output('zapol_table', 'children')],
-    [Input('load_data_interval', 'n_intervals'), Input('edu_level_occ', 'value'), Input('edu_form_occ', 'value'),
+    [Input('load_data_interval_', 'n_intervals'), Input('edu_level_occ', 'value'), Input('edu_form_occ', 'value'),
      Input('fintype_occ', 'value')
      ]
 )
 def plot_kcp_ratio(n, edu_level, edu_form, fintype):
+    DATA_LOADER.load_data()
     df = DATA_LOADER.data
     enrolled = df[df['app_id'].notna()]
 
