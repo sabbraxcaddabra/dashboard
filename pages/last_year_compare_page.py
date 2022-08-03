@@ -478,14 +478,26 @@ def plot_compare_decree(n, date, edu_level, edu_form, fintype, post_method):
 
     compare = compare.fillna(0)
 
+
     compare['dec_data_m_d'] = compare['dec_data_m_d'].cumsum()
     compare['dec_data_m_d_21'] = compare['dec_data_m_d_21'].cumsum()
 
+    compare['diff_22'] = compare['dec_data_m_d'].diff()
+    compare['diff_21'] = compare['dec_data_m_d_21'].diff()
+
+    compare = compare.fillna(0)
+
+    compare['diff_22'] = compare['diff_22'].astype(int)
+    compare['diff_21'] = compare['diff_21'].astype(int)
+
     fig = go.Figure()
     fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d'], mode='lines+markers', name='Зачисленные 22',
-                                   line_color='rgba(43, 123, 231, 0.6)', fill='tozeroy'))
+                                   line_color='rgba(43, 123, 231, 0.6)', fill='tozeroy',
+                                   text=[f'Разница {diff_i}' for diff_i in compare['diff_22'].to_list()]
+                                   ))
+
     fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d_21'], mode='lines+markers', name='Зачисленные 21',
-                         line_color='rgb(142, 15, 13)'))
+                         line_color='rgb(142, 15, 13)', text=[f'Разница {diff_i}' for diff_i in compare['diff_21'].to_list()]))
 
     fig.update_layout(
         xaxis_title="Дата",
