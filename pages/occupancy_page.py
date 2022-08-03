@@ -155,6 +155,9 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
 
     fintype_ = fintype_dict[fintype]
 
+    df = df[df['app_id'].isna()]
+    df['point_sum'] = df['point_sum'] + df['ach']
+
     grouped_sogl = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'orig_and_agree': 'sum'})
     grouped_sogl['kcp'] = grouped_sogl.apply(lambda row: kcp_dict[row['spec_name']][fintype_], axis=1)
 
