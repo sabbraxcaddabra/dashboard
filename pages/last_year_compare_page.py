@@ -491,13 +491,13 @@ def plot_compare_decree(n, date, edu_level, edu_form, fintype, post_method):
     compare['diff_21'] = compare['diff_21'].astype(int)
 
     fig = go.Figure()
-    fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d'], mode='lines+markers', name='Зачисленные 22',
+    fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d'], mode='lines+markers', name='Всего 22',
                                    line_color='rgba(43, 123, 231, 0.6)', fill='tozeroy',
-                                   text=[f'Разница {diff_i}' for diff_i in compare['diff_22'].to_list()]
+                                   text=[f'Прирост 22 {diff_i}' for diff_i in compare['diff_22'].to_list()]
                                    ))
 
-    fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d_21'], mode='lines+markers', name='Зачисленные 21',
-                         line_color='rgb(142, 15, 13)', text=[f'Разница {diff_i}' for diff_i in compare['diff_21'].to_list()]))
+    fig.add_trace(get_decrees_plot(compare.index, compare['dec_data_m_d_21'], mode='lines+markers', name='Всего 21',
+                         line_color='rgb(142, 15, 13)', text=[f'Прирост 21 {diff_i}' for diff_i in compare['diff_21'].to_list()]))
 
     fig.update_layout(
         xaxis_title="Дата",
