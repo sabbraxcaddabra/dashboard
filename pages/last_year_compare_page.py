@@ -150,10 +150,10 @@ layout = html.Div(children=[
             )
         ]),
     ]),
+    dcc.Graph(id='compare_decrees_plot'),  # Распределение по зачисленным
     dcc.Graph(id='compare_adm_cond_speces'), # Сравнение двух лет на каждую специальность и по типу подачи
     dcc.Graph(id='daily_load_plot_not_cum'), # Распределение по дням
     dcc.Graph(id='daily_load_plot_cum'), # Распределение по дням кумулятивное
-    dcc.Graph(id='compare_decrees_plot') # Распределение по дням кумулятивное
 ])
 
 

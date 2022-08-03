@@ -83,7 +83,7 @@ def get_df_by_fintype(tmp_df, fintype):
 
 
 control_elements = html.Div(children=[
-    dcc.Interval(id='load_data_interval_', interval=300e3),
+    dcc.Interval(id='load_data_interval_', interval=100e3),
     html.Br(),
     dbc.Row(children=[
         dbc.Col(children=[

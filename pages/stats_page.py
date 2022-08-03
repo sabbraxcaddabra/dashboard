@@ -178,8 +178,8 @@ mean_point = html.Div(children=[ # Блок с распределением ср
     html.H5('Диапазон баллов'),
     dcc.RangeSlider(0, 100, 5, value=[50, 100], id='bal_range'),
     dcc.Graph(id='mean_point_plot'),
-    html.H3('Отношение кол-ва согласий к КЦП*'),
-    dcc.Graph(id='sogl_kcp_ratio')
+    # html.H3('Отношение кол-ва согласий к КЦП*'),
+    # dcc.Graph(id='sogl_kcp_ratio')
 ])
 
 agree_ratio = html.Div(children=[
