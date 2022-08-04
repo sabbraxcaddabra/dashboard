@@ -47,13 +47,13 @@ class DailyDataLoader:
 
     _query = """
         select
-          base.app_id, base.abId as 'abiturient_id', base.statId as 'status_id', base.statN as 'status_name', base.hos as 'hostel', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
+          base.ss_agr, base.app_id, base.abId as 'abiturient_id', base.statId as 'status_id', base.statN as 'status_name', base.hos as 'hostel', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
             base.specP as 'profile_name', base.eduId as 'edu_level_id', base.eduN as 'edu_level', base.finId as 'fintype_id', base.finN as 'fintype', base.forId as 'edu_from_id', 
             base.forN as 'edu_form', base.posId as 'post_method_id', base.posN as 'post_method', base.tim as 'add_data', base.org as 'original', base.agr as 'agree', base.dog as 'dogovor',
             base.decNum as 'decree_num', base.decData as 'dec_data'
         from 
         (select
-            application.id as app_id, abiturient.id as abId, abiturient_status.id as statId, abiturient_status.name as statN, side_info.hostel as hos, specialty.id as specId, specialty.name as specN, specialty.code as specC, 
+            consent.sspriem_mark as ss_agr, application.id as app_id, abiturient.id as abId, abiturient_status.id as statId, abiturient_status.name as statN, side_info.hostel as hos, specialty.id as specId, specialty.name as specN, specialty.code as specC, 
                 specialty_profile.name as specP, edulevel.id as eduId, edulevel.name as eduN, fintype.id as finId, fintype.name as finN, eduform.id as forId, eduform.name as forN, post_method.id as posId, post_method.name as posN, application.add_time as tim,
                 if(abiturient.id in (select edu_doc.abiturient_id from edu_doc where edu_doc.deleted_at is null and edu_doc.original = 1), 1, 0) as org,
                 if(concat(abiturient.id, application.id) in (select concat(consent.abiturient_id, consent.application_id) from consent where consent.deleted_at is null), 1, 0) as agr,
@@ -67,6 +67,7 @@ class DailyDataLoader:
                 join eduform on eduform.id = competitive_group.eduform_id join post_method on side_info.post_method_id = post_method.id
                 left join enrolled on enrolled.abiturient_id = abiturient.id and enrolled.application_id = application.id and enrolled.status_id = 1
                 left join decree on decree.id = enrolled.decree_id
+                left join consent on application.id = consent.application_id
           where
             application.deleted_at is null  and abiturient.id not in (select abiturient_id from abiturient_lock where user_id = 6)
         ) as base
@@ -85,7 +86,10 @@ class DailyDataLoader:
             return spec_name
         return profile_name
 
-    def get_orig_and_agree(self, fintype, post_method, original, agree, dogovor):
+    def get_orig_and_agree(self, fintype, post_method, original, agree, dogovor, ss_agr):
+        if ss_agr == 1:
+            return 1
+
         if fintype != 'С оплатой обучения':
             if post_method == 'Подано через ЕПГУ':
                 return agree
@@ -100,7 +104,7 @@ class DailyDataLoader:
 
         connection = self._engine.connect()
         df = pd.read_sql(self._query, connection, parse_dates={'add_data': '%Y/%m/%d', 'dec_data': '%Y/%m/%d'})
-        df['orig_and_agree'] = df.apply(lambda row: self.get_orig_and_agree(row['fintype'], row['post_method'], row['original'], row['agree'], row['dogovor']), axis=1)
+        df['orig_and_agree'] = df.apply(lambda row: self.get_orig_and_agree(row['fintype'], row['post_method'], row['original'], row['agree'], row['dogovor'], row['ss_agr']), axis=1)
         df['spec_name'] = df.apply(
             lambda row: self.get_true_spec(row['edu_level'], row['spec_name'], row['profile_name']), axis=1)
 
@@ -160,7 +164,7 @@ class DataLoader(DailyDataLoader):
         super(DataLoader, self).__init__()
         self._query = '''
         select
-  base.app_id, base.abId as 'abiturient_id', base.genId as 'gender_id', base.genN as 'gender_name', base.regId as 'region_id', 
+  base.ss_agr, base.app_id, base.abId as 'abiturient_id', base.genId as 'gender_id', base.genN as 'gender_name', base.regId as 'region_id', 
   if(base.regId = 0, '-', (select CASE WHEN region.typename = 'г' OR region.typename = 'Респ' THEN CONCAT(region.typename, '. ', region.name) 
   ELSE CONCAT(region.name, ' ', region.typename, '.') END from region where region.id = base.regId)) as 'region_name',
   base.conId as 'country_id', (select country.name from country where country.id = base.conId) as 'country_name', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
@@ -169,7 +173,7 @@ class DataLoader(DailyDataLoader):
   ifnull(base.ex2, 0) as 'disc_point2', ifnull(base.ex3, 0) as 'disc_point3', if(base.eduId = 2, if(ifnull(base.ach, 0) > 20, 20, ifnull(base.ach, 0)), if(ifnull(base.ach, 0) > 10, 10, ifnull(base.ach, 0)))  as 'ach'
 from 
 (select
-  enrolled.application_id as app_id, ab.id as abId, gender.id as genId, gender.name as genN, ifnull((select region.id from address join region on region.id = address.region_id 
+  consent.sspriem_mark as ss_agr, enrolled.application_id as app_id, ab.id as abId, gender.id as genId, gender.name as genN, ifnull((select region.id from address join region on region.id = address.region_id 
     where ab.id = address.abiturient_id and address.deleted_at is null order by region.id limit 0, 1), 0) as regId,
   ifnull((select country.id from identity_doc join country on country.id = identity_doc.citizenship_id 
     where ab.id = identity_doc.abiturient_id and identity_doc.deleted_at is null order by country.id limit 0, 1), 0) as conId,
@@ -187,6 +191,7 @@ from
     join fintype on fintype.id = competitive_group.fintype_id join eduform on eduform.id = competitive_group.eduform_id join post_method on side_info.post_method_id = post_method.id
     join application_exam_cache on application_exam_cache.application_id = application.id
     left join enrolled on enrolled.abiturient_id = ab.id and enrolled.application_id = application.id and enrolled.status_id = 1
+    left join consent on application.id = consent.application_id and consent.deleted_at is null
   where
   application.deleted_at is null and ab.status_id = 2 and ab.id not in (select abiturient_id from abiturient_lock where user_id = 6) and competitive_group.campaign_id != 3
 ) as base
