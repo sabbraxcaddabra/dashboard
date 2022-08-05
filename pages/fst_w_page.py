@@ -120,6 +120,12 @@ def get_fst_w_stats(df: pd.DataFrame):
 
     return fst_w_grouped
 
+def second_w(spec_name, df_kcp):
+    df_kcp = df_kcp.query(f'spec_name == "{spec_name}"').reset_index()
+    kcp = df_kcp.at[0, 'kcp_p']
+    if kcp > 0:
+        return 1
+    return 0
 
 def get_bak_spec_fst_w(df): # Бакалавриат/Специалитет - Очное - Бюджет первая волна
     df = get_df_by_edu_level(df, 'Бакалавриат/Специалитет')
@@ -130,7 +136,7 @@ def get_bak_spec_fst_w(df): # Бакалавриат/Специалитет - О
 
     return df
 
-def get_bak_spec_sec_w(df): # Бакалавриат/Специалитет - Очное - Бюджет вторая волна
+def get_bak_spec_sec_w(df, stats_w_kcp=None): # Бакалавриат/Специалитет - Очное - Бюджет вторая волна
     df = get_df_by_edu_level(df, 'Бакалавриат/Специалитет')
     df = get_df_by_edu_form(df, 'Очное')
     df = get_df_by_fintype(df, 'Бюджет')
@@ -138,22 +144,18 @@ def get_bak_spec_sec_w(df): # Бакалавриат/Специалитет - О
     df = df[df['fintype'] == 'Основные места']
     df = df[df['decree_id'].isna()]
     df = df[df['orig_and_agree'] == 1]
+    df['sec_w'] = df.apply(lambda row: second_w(row['spec_name'], stats_w_kcp), axis=1)
 
-    return df[df['orig_and_agree'] == 1], df
+    df = df[df['sec_w'] == 1]
+
+    return df
 
 def get_sec_w_stats(df):
     sec_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
 
     return sec_w_grouped
 
-def get_were_in_k(dec_id):
-    print(dec_id)
-    if dec_id:
-        return 1
-    else:
-        return 0
-
-def get_total_stats(prior_df, fst_w_df, sec_w_df, df_not_orig, df):
+def get_total_stats(prior_df, fst_w_df, sec_w_df, df):
 
     df = get_df_by_edu_level(df, 'Бакалавриат/Специалитет')
     df = get_df_by_edu_form(df, 'Очное')
@@ -183,33 +185,28 @@ def get_total_stats(prior_df, fst_w_df, sec_w_df, df_not_orig, df):
 
 layout = html.Div(children=[
     dcc.Interval(id='load_data_fst_w', interval=500e3),
-    # dcc.Graph(id='fst_w_plot'),
+    html.A("Ссылка на статистику траектории",
+           href='http://library.voenmeh.ru/jirbis2/files/priem2022/traectory_stat.html',
+           target="_blank"
+           ),
     html.Div(id='fst_w_table'),
     html.Br(),
     html.Br()
 ])
 
-
-def get_were_in_k(decree_id):
-    if decree_id:
-        return 1
-    return 0
-
 def get_bak_spec_table(df):
     df_prior = get_bak_spec_prior(df)
     df_fst_w = get_bak_spec_fst_w(df)
-    df_sec_w, df_not_orig = get_bak_spec_sec_w(df)
     kcp_dict = get_kcp_dict_by_edu_level('Бакалавриат/Специалитет')
     kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, 'Очное')
 
     prior_stats = get_prior_stats(df_prior)
     fst_w_stats = get_fst_w_stats(df_fst_w)
-    sec_w_stats = get_sec_w_stats(df_sec_w)
 
-    # prior_stats.to_excel('prior.xlsx')
-
-    osn_k_grouped = fst_w_stats.merge(sec_w_stats, how='outer', on='spec_name', suffixes=('_fst_w', '_sec_w'))
-    total_df, total_stats = get_total_stats(df_prior, df_fst_w, df_sec_w, df_not_orig, df)
+    osn_k_grouped = fst_w_stats.add_suffix('_fst_w')
+    osn_k_grouped = osn_k_grouped.rename(columns={
+        'spec_name_fst_w': 'spec_name'
+    })
 
     grouped = osn_k_grouped.merge(prior_stats, how='outer', on='spec_name')
     grouped['kcp'] = grouped.apply(lambda row: kcp_dict[row['spec_name']]['kcp_b_all'], axis=1)
@@ -221,6 +218,16 @@ def get_bak_spec_table(df):
     })
 
     grouped['kcp_p'] = grouped['kcp'] - grouped['abiturient_id_celo'] - grouped['abiturient_id_os_spec'] - grouped['abiturient_id_fst_w']
+
+    df_sec_w = get_bak_spec_sec_w(df, grouped)
+    sec_w_stats = get_sec_w_stats(df_sec_w)
+    grouped = grouped.merge(sec_w_stats, how='outer', on='spec_name', suffixes=('', '_sec_w'))
+    grouped = grouped.rename(columns={
+        'abiturient_id': 'abiturient_id_sec_w',
+        'point_sum': 'point_sum_sec_w',
+
+    })
+    total_df, total_stats = get_total_stats(df_prior, df_fst_w, df_sec_w, df)
 
     grouped = total_stats.merge(grouped, how='outer', on='spec_name')
 
@@ -235,11 +242,11 @@ def get_bak_spec_table(df):
 
     grouped = grouped.loc[:, needed_cols].rename(columns={
         'spec_code_fst_w': 'Код специальности', 'spec_name': 'Название направления подготовки',
-        'abiturient_id': 'Бюджет в рамках КЦП', 'point_sum': 'Бюджет в рамках КЦП, балл',
+        'abiturient_id': 'Бюджет', 'point_sum': 'Бюджет, балл',
         'abiturient_id_celo': 'Целевая квота', 'point_sum_celo': 'Целевая квота, балл',
         'abiturient_id_os_spec': 'Особая и спец. квота', 'point_sum_os_spec': 'Особая и спец. квота, балл',
-        'abiturient_id_fst_w': 'Основные места 1 волна', 'point_sum_fst_w': 'Основные места 1 волна, балл',
-        'abiturient_id_sec_w': 'Основные места 2 волна', 'point_sum_sec_w': 'Основные места 2 волна, балл',
+        'abiturient_id_fst_w': '1 волна', 'point_sum_fst_w': '1 волна, балл',
+        'abiturient_id_sec_w': '2 волна', 'point_sum_sec_w': '2 волна, балл',
         'kcp_p': 'Остаток до закрытия КЦП', 'zapas': 'Запас по заялениям'
     })
 
