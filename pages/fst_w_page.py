@@ -139,12 +139,48 @@ def get_bak_spec_sec_w(df): # Бакалавриат/Специалитет - О
     df = df[df['decree_id'].isna()]
     df = df[df['orig_and_agree'] == 1]
 
-    return df
+    return df[df['orig_and_agree'] == 1], df
 
 def get_sec_w_stats(df):
     sec_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
 
     return sec_w_grouped
+
+def get_were_in_k(dec_id):
+    print(dec_id)
+    if dec_id:
+        return 1
+    else:
+        return 0
+
+def get_total_stats(prior_df, fst_w_df, sec_w_df, df_not_orig, df):
+
+    df = get_df_by_edu_level(df, 'Бакалавриат/Специалитет')
+    df = get_df_by_edu_form(df, 'Очное')
+    df = get_df_by_fintype(df, 'Бюджет')
+
+    enrolled = df[df['decree_id'].notna()]['abiturient_id'].to_list()
+
+    df['were_in_k'] = df['abiturient_id'].apply(lambda ab_id: 1 if ab_id in enrolled else 0)
+
+    ab_grouped = df.groupby('abiturient_id', as_index=True).agg({'were_in_k': 'sum'})
+    ab_grouped = ab_grouped[ab_grouped['were_in_k'] > 0]
+
+    df['were_in_k'] = df.apply(lambda row: row['abiturient_id'] in ab_grouped.index.to_list(), axis=1)
+    not_in_k = df[df['were_in_k'] == False]
+    zapas = not_in_k.groupby('spec_name', as_index=False).agg({'abiturient_id': 'nunique'})
+
+    total_df = pd.concat((prior_df, fst_w_df, sec_w_df), ignore_index=True)
+    total_grouped = total_df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+
+    zapas = zapas.rename(columns={
+        'abiturient_id': 'zapas'
+    })
+
+    print(zapas)
+    total_grouped = total_grouped.merge(zapas, how='left', on='spec_name')
+
+    return total_df, total_grouped
 
 layout = html.Div(children=[
     dcc.Interval(id='load_data_fst_w', interval=100e3),
@@ -155,10 +191,15 @@ layout = html.Div(children=[
 ])
 
 
+def get_were_in_k(decree_id):
+    if decree_id:
+        return 1
+    return 0
+
 def get_bak_spec_table(df):
     df_prior = get_bak_spec_prior(df)
     df_fst_w = get_bak_spec_fst_w(df)
-    df_sec_w = get_bak_spec_sec_w(df)
+    df_sec_w, df_not_orig = get_bak_spec_sec_w(df)
     kcp_dict = get_kcp_dict_by_edu_level('Бакалавриат/Специалитет')
     kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, 'Очное')
 
@@ -168,9 +209,10 @@ def get_bak_spec_table(df):
 
     # prior_stats.to_excel('prior.xlsx')
 
-    osn_k_grouped = fst_w_stats.merge(sec_w_stats, how='left', on='spec_name', suffixes=('_fst_w', '_sec_w'))
+    osn_k_grouped = fst_w_stats.merge(sec_w_stats, how='outer', on='spec_name', suffixes=('_fst_w', '_sec_w'))
+    total_df, total_stats = get_total_stats(df_prior, df_fst_w, df_sec_w, df_not_orig, df)
 
-    grouped = osn_k_grouped.merge(prior_stats, how='left', on='spec_name')
+    grouped = osn_k_grouped.merge(prior_stats, how='outer', on='spec_name')
     grouped['kcp'] = grouped.apply(lambda row: kcp_dict[row['spec_name']]['kcp_b_all'], axis=1)
 
     grouped = grouped.fillna(value={
@@ -181,21 +223,25 @@ def get_bak_spec_table(df):
 
     grouped['kcp_p'] = grouped['kcp'] - grouped['abiturient_id_celo'] - grouped['abiturient_id_os_spec'] - grouped['abiturient_id_fst_w']
 
+    grouped = total_stats.merge(grouped, how='outer', on='spec_name')
+
     needed_cols = ['spec_code_fst_w', 'spec_name',
+                   'abiturient_id', 'point_sum',
                    'abiturient_id_celo', 'point_sum_celo',
                    'abiturient_id_os_spec', 'point_sum_os_spec',
                    'abiturient_id_fst_w', 'point_sum_fst_w',
                    'abiturient_id_sec_w', 'point_sum_sec_w',
-                   'kcp_p'
+                   'kcp_p', 'zapas'
                    ]
 
     grouped = grouped.loc[:, needed_cols].rename(columns={
         'spec_code_fst_w': 'Код специальности', 'spec_name': 'Название направления подготовки',
+        'abiturient_id': 'Бюджет в рамках КЦП', 'point_sum': 'Бюджет в рамках КЦП, балл',
         'abiturient_id_celo': 'Целевая квота', 'point_sum_celo': 'Целевая квота, балл',
         'abiturient_id_os_spec': 'Особая и спец. квота', 'point_sum_os_spec': 'Особая и спец. квота, балл',
         'abiturient_id_fst_w': 'Основные места 1 волна', 'point_sum_fst_w': 'Основные места 1 волна, балл',
         'abiturient_id_sec_w': 'Основные места 2 волна', 'point_sum_sec_w': 'Основные места 2 волна, балл',
-        'kcp_p': 'Остаток до закрытия КЦП'
+        'kcp_p': 'Остаток до закрытия КЦП', 'zapas': 'Запас по заялениям'
     })
 
     grouped = grouped.round(1)
