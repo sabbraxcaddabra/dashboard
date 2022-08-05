@@ -119,6 +119,61 @@ def get_minimum_bal(df: pd.DataFrame, spec_name, kcp_p):
     else:
         return df['point_sum'].min()
 
+def get_bak_spec_prior(df): # Бакалавриат/Специалитет - Очное - Бюджет приоритетный этап
+    df = get_df_by_edu_level(df, 'Бакалавриат/Специалитет')
+    df = get_df_by_edu_form(df, 'Очное')
+    df = get_df_by_fintype(df, 'Бюджет')
+
+    df = df.query("decree_id in (3, 4, 5, 6)")
+
+    return df
+
+def get_prior_stats(df: pd.DataFrame):
+    celo: pd.DataFrame = df[df['fintype'] == 'Целевая квота']
+    os_spec: pd.DataFrame = df[df['fintype'] != 'Целевая квота']
+
+    celo_grouped = celo.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+    os_spec_grouped = os_spec.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+
+    grouped = celo_grouped.merge(os_spec_grouped, how='left', on='spec_name', suffixes=('_celo', '_os_spec'))
+
+    return grouped
+
+def get_fst_w_stats(df: pd.DataFrame):
+
+    fst_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+
+    return fst_w_grouped
+
+
+def test_prior(df):
+    df = get_bak_spec_prior(df)
+    print(get_prior_stats(df))
+
+
+def get_bak_spec_fst_w(df): # Бакалавриат/Специалитет - Очное - Бюджет первая волна
+    df = get_df_by_edu_level(df, 'Бакалавриат/Специалитет')
+    df = get_df_by_edu_form(df, 'Очное')
+    df = get_df_by_fintype(df, 'Бюджет')
+
+    df = df.query("decree_id == 9")
+
+    return df
+
+def plot_bak_spec(df):
+    df_prior = get_bak_spec_prior(df)
+    df_fst_w = get_bak_spec_fst_w(df)
+    kcp_dict = get_kcp_dict_by_edu_level('Бакалавриат/Специалитет')
+    kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, 'Очное')
+
+    prior_stats = get_prior_stats(df_prior)
+    fst_w_stats = get_fst_w_stats(df_fst_w)
+
+    grouped = prior_stats.merge(fst_w_stats, how='left', on='spec_name', suffixes=('', '_sft_w'))
+    # grouped.to_excel('fst_w.xlsx')
+    # print(grouped)
+
+
 @callback(
     [Output('sogl_kcp_ratio_', 'figure'), Output('zapol_table', 'children')],
     [Input('load_data_interval_', 'n_intervals'), Input('edu_level_occ', 'value'), Input('edu_form_occ', 'value'),
@@ -128,6 +183,8 @@ def get_minimum_bal(df: pd.DataFrame, spec_name, kcp_p):
 def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     DATA_LOADER.load_data()
     df = DATA_LOADER.data
+
+    plot_bak_spec(df)
     enrolled = df[df['app_id'].notna()]
 
     df = get_df_by_edu_level(df, edu_level)

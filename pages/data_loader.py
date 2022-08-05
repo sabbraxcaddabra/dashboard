@@ -163,8 +163,8 @@ class DataLoader(DailyDataLoader):
     def __init__(self):
         super(DataLoader, self).__init__()
         self._query = '''
-        select
-  base.ss_agr, base.app_id, base.abId as 'abiturient_id', base.genId as 'gender_id', base.genN as 'gender_name', base.regId as 'region_id', 
+select
+  base.decree_id, base.ss_agr, base.app_id, base.abId as 'abiturient_id', base.genId as 'gender_id', base.genN as 'gender_name', base.regId as 'region_id', 
   if(base.regId = 0, '-', (select CASE WHEN region.typename = 'г' OR region.typename = 'Респ' THEN CONCAT(region.typename, '. ', region.name) 
   ELSE CONCAT(region.name, ' ', region.typename, '.') END from region where region.id = base.regId)) as 'region_name',
   base.conId as 'country_id', (select country.name from country where country.id = base.conId) as 'country_name', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
@@ -173,7 +173,7 @@ class DataLoader(DailyDataLoader):
   ifnull(base.ex2, 0) as 'disc_point2', ifnull(base.ex3, 0) as 'disc_point3', if(base.eduId = 2, if(ifnull(base.ach, 0) > 20, 20, ifnull(base.ach, 0)), if(ifnull(base.ach, 0) > 10, 10, ifnull(base.ach, 0)))  as 'ach'
 from 
 (select
-  consent.sspriem_mark as ss_agr, enrolled.application_id as app_id, ab.id as abId, gender.id as genId, gender.name as genN, ifnull((select region.id from address join region on region.id = address.region_id 
+  consent.sspriem_mark as ss_agr, enrolled.application_id as app_id, enrolled.decree_id as decree_id, ab.id as abId, gender.id as genId, gender.name as genN, ifnull((select region.id from address join region on region.id = address.region_id 
     where ab.id = address.abiturient_id and address.deleted_at is null order by region.id limit 0, 1), 0) as regId,
   ifnull((select country.id from identity_doc join country on country.id = identity_doc.citizenship_id 
     where ab.id = identity_doc.abiturient_id and identity_doc.deleted_at is null order by country.id limit 0, 1), 0) as conId,

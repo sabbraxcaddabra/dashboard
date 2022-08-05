@@ -17,7 +17,7 @@ with open(CONFIG_FILE, encoding='utf-8') as config_file:
 
 import dash_bootstrap_components as dbc
 
-from pages import daily_load_page, stats_page, last_year_compare_page, occupancy_page
+from pages import daily_load_page, stats_page, last_year_compare_page, occupancy_page, fst_w_page
 
 external_stylesheets = [dbc.themes.GRID,
                       dbc.themes.BOOTSTRAP,
@@ -56,7 +56,7 @@ report_type = html.Div(children=[
     html.H2('Тип отчета'),
     dcc.Dropdown(
         id='report_type',
-        options=['Заполняемость', 'Деканское', 'Ежедневный отчет', 'Сравнение с ПК 2021'], value='Заполняемость', clearable=False
+        options=['Анализ первой волны', 'Заполняемость', 'Деканское', 'Ежедневный отчет', 'Сравнение с ПК 2021'], value='Заполняемость', clearable=False
     ),
     html.Br(),
 ])
@@ -78,7 +78,8 @@ def refresh_page(report_type):
         'Ежедневный отчет': '/daily_load_page',
         'Деканское': '/stats_page',
         'Сравнение с ПК 2021': '/compare_2021_page',
-        'Заполняемость': '/occupancy_page'
+        'Заполняемость': '/occupancy_page',
+        'Анализ первой волны': '/fst_w_page'
     }
     return report_dict[report_type]
 
@@ -106,6 +107,8 @@ def display_page(pathname):
         return last_year_compare_page.layout
     elif pathname == '/occupancy_page':
         return occupancy_page.layout
+    elif pathname == '/fst_w_page':
+        return fst_w_page.layout
     else:
         return '404'
 
