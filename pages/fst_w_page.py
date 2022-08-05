@@ -148,7 +148,7 @@ def get_sec_w_stats(df):
 
 layout = html.Div(children=[
     dcc.Interval(id='load_data_fst_w', interval=100e3),
-    dcc.Graph(id='fst_w_plot'),
+    # dcc.Graph(id='fst_w_plot'),
     html.Div(id='fst_w_table'),
     html.Br(),
     html.Br()
