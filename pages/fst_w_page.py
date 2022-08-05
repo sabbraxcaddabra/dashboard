@@ -107,8 +107,8 @@ def get_prior_stats(df: pd.DataFrame):
     celo: pd.DataFrame = df[df['fintype'] == 'Целевая квота']
     os_spec: pd.DataFrame = df[(df['fintype'] == 'Особая квота') | (df['fintype'] == 'Специальная квота')]
 
-    celo_grouped = celo.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
-    os_spec_grouped = os_spec.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+    celo_grouped = celo.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_mean': 'mean'})
+    os_spec_grouped = os_spec.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_mean': 'mean'})
 
     grouped = celo_grouped.merge(os_spec_grouped, how='outer', on='spec_name', suffixes=('_celo', '_os_spec'))
 
@@ -116,7 +116,7 @@ def get_prior_stats(df: pd.DataFrame):
 
 def get_fst_w_stats(df: pd.DataFrame):
 
-    fst_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+    fst_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_mean': 'mean'})
 
     return fst_w_grouped
 
@@ -151,7 +151,7 @@ def get_bak_spec_sec_w(df, stats_w_kcp=None): # Бакалавриат/Спец�
     return df
 
 def get_sec_w_stats(df):
-    sec_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+    sec_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_mean': 'mean'})
 
     return sec_w_grouped
 
@@ -173,7 +173,7 @@ def get_total_stats(prior_df, fst_w_df, sec_w_df, df):
     zapas = not_in_k.groupby('spec_name', as_index=False).agg({'abiturient_id': 'nunique'})
 
     total_df = pd.concat((prior_df, fst_w_df, sec_w_df), ignore_index=True)
-    total_grouped = total_df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_sum': 'mean'})
+    total_grouped = total_df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_mean': 'mean'})
 
     zapas = zapas.rename(columns={
         'abiturient_id': 'zapas'
@@ -224,7 +224,7 @@ def get_bak_spec_table(df):
     grouped = grouped.merge(sec_w_stats, how='outer', on='spec_name', suffixes=('', '_sec_w'))
     grouped = grouped.rename(columns={
         'abiturient_id': 'abiturient_id_sec_w',
-        'point_sum': 'point_sum_sec_w',
+        'point_mean': 'point_mean_sec_w',
 
     })
     total_df, total_stats = get_total_stats(df_prior, df_fst_w, df_sec_w, df)
@@ -232,21 +232,21 @@ def get_bak_spec_table(df):
     grouped = total_stats.merge(grouped, how='outer', on='spec_name')
 
     needed_cols = ['spec_code_fst_w', 'spec_name',
-                   'abiturient_id', 'point_sum',
-                   'abiturient_id_celo', 'point_sum_celo',
-                   'abiturient_id_os_spec', 'point_sum_os_spec',
-                   'abiturient_id_fst_w', 'point_sum_fst_w',
-                   'abiturient_id_sec_w', 'point_sum_sec_w',
+                   'abiturient_id', 'point_mean',
+                   'abiturient_id_celo', 'point_mean_celo',
+                   'abiturient_id_os_spec', 'point_mean_os_spec',
+                   'abiturient_id_fst_w', 'point_mean_fst_w',
+                   'abiturient_id_sec_w', 'point_mean_sec_w',
                    'kcp_p', 'zapas'
                    ]
 
     grouped = grouped.loc[:, needed_cols].rename(columns={
         'spec_code_fst_w': 'Код специальности', 'spec_name': 'Название направления подготовки',
-        'abiturient_id': 'Бюджет', 'point_sum': 'Бюджет, балл',
-        'abiturient_id_celo': 'Целевая квота', 'point_sum_celo': 'Целевая квота, балл',
-        'abiturient_id_os_spec': 'Особая и спец. квота', 'point_sum_os_spec': 'Особая и спец. квота, балл',
-        'abiturient_id_fst_w': '1 волна', 'point_sum_fst_w': '1 волна, балл',
-        'abiturient_id_sec_w': '2 волна', 'point_sum_sec_w': '2 волна, балл',
+        'abiturient_id': 'Бюджет', 'point_mean': 'Бюджет, балл',
+        'abiturient_id_celo': 'Целевая квота', 'point_mean_celo': 'Целевая квота, балл',
+        'abiturient_id_os_spec': 'Особая и спец. квота', 'point_mean_os_spec': 'Особая и спец. квота, балл',
+        'abiturient_id_fst_w': '1 волна', 'point_mean_fst_w': '1 волна, балл',
+        'abiturient_id_sec_w': '2 волна', 'point_mean_sec_w': '2 волна, балл',
         'kcp_p': 'Остаток до закрытия КЦП', 'zapas': 'Запас по заялениям'
     })
 
