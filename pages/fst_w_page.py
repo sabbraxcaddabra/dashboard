@@ -136,6 +136,21 @@ def get_bak_spec_fst_w(df): # Бакалавриат/Специалитет - О
 
     return df
 
+def drop_from_konkurs(df, kcp_df):
+    spec_list = []
+    for spec in df['spec_name'].unique():
+        df_kcp = kcp_df.query(f'spec_name == "{spec}"').reset_index()
+        kcp = df_kcp.at[0, 'kcp_p']
+        spec_df = df[df['spec_name'] == spec]
+        spec_df = spec_df.sort_values('point_mean', ascending=False)
+        if spec_df.shape[0] > kcp:
+            spec_df = spec_df.iloc[:int(kcp)]
+        spec_list.append(spec_df)
+
+    res_df = pd.concat(spec_list, ignore_index=True)
+    return res_df
+
+
 def get_bak_spec_sec_w(df, stats_w_kcp=None): # Бакалавриат/Специалитет - Очное - Бюджет вторая волна
     df = get_df_by_edu_level(df, 'Бакалавриат/Специалитет')
     df = get_df_by_edu_form(df, 'Очное')
@@ -147,10 +162,31 @@ def get_bak_spec_sec_w(df, stats_w_kcp=None): # Бакалавриат/Спец�
     df['sec_w'] = df.apply(lambda row: second_w(row['spec_name'], stats_w_kcp), axis=1)
 
     df = df[df['sec_w'] == 1]
+    df = drop_from_konkurs(df, stats_w_kcp)
 
     return df
 
-def get_sec_w_stats(df):
+def get_sec_w_mean(df, spec_name, kcp_df):
+    df_kcp = kcp_df.query(f'spec_name == "{spec_name}"').reset_index()
+    kcp = df_kcp.at[0, 'kcp_p']
+    df = df.sort_values('point_mean', ascending=False)
+    if df.shape[0] > kcp:
+        df = df.iloc[:int(kcp)]
+        return df['point_mean'].mean()
+    else:
+        return df['point_mean'].mean()
+
+def get_sec_w_count(df, spec_name, kcp_df):
+    df_kcp = kcp_df.query(f'spec_name == "{spec_name}"').reset_index()
+    kcp = df_kcp.at[0, 'kcp_p']
+    df = df.sort_values('point_mean', ascending=False)
+    if df.shape[0] > kcp:
+        df = df.iloc[:int(kcp)]
+        return df['point_mean'].shape[0]
+    else:
+        return df['point_mean'].shape[0]
+
+def get_sec_w_stats(df, stats_w_kcp=None):
     sec_w_grouped = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'abiturient_id': 'count', 'point_mean': 'mean'})
 
     return sec_w_grouped
@@ -186,7 +222,7 @@ def get_total_stats(prior_df, fst_w_df, sec_w_df, df):
 layout = html.Div(children=[
     dcc.Interval(id='load_data_fst_w', interval=500e3),
     html.A("Ссылка на статистику траектории",
-           href='http://library.voenmeh.ru/jirbis2/files/priem2022/traectory_stat.html',
+           href='http://library.voenmeh.ru/jirbis2/files/priem2022/traectory_stat_after.html',
            target="_blank"
            ),
     html.Div(id='fst_w_table'),
@@ -220,7 +256,9 @@ def get_bak_spec_table(df):
     grouped['kcp_p'] = grouped['kcp'] - grouped['abiturient_id_celo'] - grouped['abiturient_id_os_spec'] - grouped['abiturient_id_fst_w']
 
     df_sec_w = get_bak_spec_sec_w(df, grouped)
-    sec_w_stats = get_sec_w_stats(df_sec_w)
+    print(df_sec_w[df_sec_w['spec_name'] == 'Стандартизация и метрология'])
+    sec_w_stats = get_sec_w_stats(df_sec_w, grouped)
+    print(sec_w_stats[sec_w_stats['spec_name'] == 'Стандартизация и метрология'])
     grouped = grouped.merge(sec_w_stats, how='outer', on='spec_name', suffixes=('', '_sec_w'))
     grouped = grouped.rename(columns={
         'abiturient_id': 'abiturient_id_sec_w',

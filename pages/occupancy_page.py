@@ -104,7 +104,7 @@ control_elements = html.Div(children=[
 layout = html.Div(children=[
     control_elements,
     html.A("Ссылка на статистику траектории",
-           href='http://library.voenmeh.ru/jirbis2/files/priem2022/traectory_stat.html',
+           href='http://library.voenmeh.ru/jirbis2/files/priem2022/traectory_stat_after.html',
            target="_blank"
            ),
     dcc.Graph(id='sogl_kcp_ratio_'),
