@@ -177,7 +177,6 @@ def get_total_stats(prior_df, fst_w_df, sec_w_df, df_not_orig, df):
         'abiturient_id': 'zapas'
     })
 
-    print(zapas)
     total_grouped = total_grouped.merge(zapas, how='left', on='spec_name')
 
     return total_df, total_grouped
