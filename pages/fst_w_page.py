@@ -182,7 +182,7 @@ def get_total_stats(prior_df, fst_w_df, sec_w_df, df_not_orig, df):
     return total_df, total_grouped
 
 layout = html.Div(children=[
-    dcc.Interval(id='load_data_fst_w', interval=100e3),
+    dcc.Interval(id='load_data_fst_w', interval=500e3),
     # dcc.Graph(id='fst_w_plot'),
     html.Div(id='fst_w_table'),
     html.Br(),
