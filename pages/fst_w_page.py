@@ -225,6 +225,12 @@ layout = html.Div(children=[
            href='http://library.voenmeh.ru/jirbis2/files/priem2022/traectory_stat_after.html',
            target="_blank"
            ),
+    html.Br(),
+    html.A("Ссылка на траекторию",
+           href='http://library.voenmeh.ru/jirbis2/files/priem2022/full_traectory_after.html',
+           target="_blank"
+           ),
+    dcc.Graph(id='fst_w_plot'),
     html.Div(id='fst_w_table'),
     html.Br(),
     html.Br()
@@ -256,14 +262,15 @@ def get_bak_spec_table(df):
     grouped['kcp_p'] = grouped['kcp'] - grouped['abiturient_id_celo'] - grouped['abiturient_id_os_spec'] - grouped['abiturient_id_fst_w']
 
     df_sec_w = get_bak_spec_sec_w(df, grouped)
-    print(df_sec_w[df_sec_w['spec_name'] == 'Стандартизация и метрология'])
     sec_w_stats = get_sec_w_stats(df_sec_w, grouped)
-    print(sec_w_stats[sec_w_stats['spec_name'] == 'Стандартизация и метрология'])
     grouped = grouped.merge(sec_w_stats, how='outer', on='spec_name', suffixes=('', '_sec_w'))
     grouped = grouped.rename(columns={
         'abiturient_id': 'abiturient_id_sec_w',
         'point_mean': 'point_mean_sec_w',
 
+    })
+    grouped = grouped.fillna(value={
+        'abiturient_id_sec_w': 0,
     })
     total_df, total_stats = get_total_stats(df_prior, df_fst_w, df_sec_w, df)
 
@@ -289,6 +296,24 @@ def get_bak_spec_table(df):
     })
 
     grouped = grouped.round(1)
+    grouped['level_code'] = grouped['Код специальности'].apply(get_edu_level)
+
+    grouped = grouped.sort_values(['level_code', 'Код специальности'])
+
+    fig = px.bar(data_frame=grouped, x='Код специальности', y='Бюджет, балл',
+                 hover_data=['Код специальности', 'Бюджет, балл', 'Бюджет',
+                             'Целевая квота', 'Особая и спец. квота', '1 волна', '2 волна',
+                             'Остаток до закрытия КЦП'
+                             ]
+                 )
+    fig.update_traces(
+        hoverlabel=dict(
+            align='left',
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        )
+    )
 
     table = dash.dash_table.DataTable(
         data=grouped.to_dict('records'),
@@ -300,10 +325,10 @@ def get_bak_spec_table(df):
         sort_action="native"
     )
 
-    return table
+    return table, fig
 
 @callback(
-    Output('fst_w_table', 'children'),
+    [Output('fst_w_table', 'children'), Output('fst_w_plot', 'figure')],
     [Input('load_data_fst_w', 'n_intervals')]
 )
 def plot_bak_spec(n):

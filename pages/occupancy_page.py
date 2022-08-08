@@ -107,6 +107,11 @@ layout = html.Div(children=[
            href='http://library.voenmeh.ru/jirbis2/files/priem2022/traectory_stat_after.html',
            target="_blank"
            ),
+    html.Br(),
+    html.A("Ссылка на траекторию",
+           href='http://library.voenmeh.ru/jirbis2/files/priem2022/full_traectory_after.html',
+           target="_blank"
+           ),
     dcc.Graph(id='sogl_kcp_ratio_'),
     html.Div(id='zapol_table')
 ])
