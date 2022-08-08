@@ -315,6 +315,7 @@ def get_bak_spec_table(df):
         )
     )
 
+    grouped = grouped.drop('level_code', axis=1)
     table = dash.dash_table.DataTable(
         data=grouped.to_dict('records'),
         style_cell={'font_size': '12px',
