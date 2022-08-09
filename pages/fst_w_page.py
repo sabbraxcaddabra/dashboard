@@ -215,9 +215,22 @@ def get_total_stats(prior_df, fst_w_df, sec_w_df, df):
         'abiturient_id': 'zapas'
     })
 
+    total_stats_dict = {
+        'Бюджет': total_df.shape[0],
+        'Бюджет, балл': round(total_df['point_mean'].mean(), 1),
+        'Целевая квота': prior_df[prior_df['fintype'] == 'Целевая квота'].shape[0],
+        'Целевая квота, балл': round(prior_df[prior_df['fintype'] == 'Целевая квота']['point_mean'].mean(), 1),
+        'Особая и спец. квота': prior_df[prior_df['fintype'] != 'Целевая квота'].shape[0],
+        'Особая и спец. квота, балл': round(prior_df[prior_df['fintype'] != 'Целевая квота']['point_mean'].mean(), 1),
+        '1 волна': fst_w_df.shape[0],
+        '1 волна, балл': round(fst_w_df['point_mean'].mean(), 1),
+        '2 волна': sec_w_df.shape[0],
+        '2 волна, балл': round(sec_w_df['point_mean'].mean(), 1)
+    }
+
     total_grouped = total_grouped.merge(zapas, how='left', on='spec_name')
 
-    return total_df, total_grouped
+    return total_df, total_grouped, total_stats_dict
 
 layout = html.Div(children=[
     dcc.Interval(id='load_data_fst_w', interval=500e3),
@@ -231,6 +244,11 @@ layout = html.Div(children=[
            target="_blank"
            ),
     dcc.Graph(id='fst_w_plot'),
+    html.Br(),
+    html.H3('Итоговая сводка'),
+    html.Br(),
+    html.Div(id='total_table'),
+    html.Br(),
     html.Div(id='fst_w_table'),
     html.Br(),
     html.Br()
@@ -272,7 +290,7 @@ def get_bak_spec_table(df):
     grouped = grouped.fillna(value={
         'abiturient_id_sec_w': 0,
     })
-    total_df, total_stats = get_total_stats(df_prior, df_fst_w, df_sec_w, df)
+    total_df, total_stats, total_stats_dict = get_total_stats(df_prior, df_fst_w, df_sec_w, df)
 
     grouped = total_stats.merge(grouped, how='outer', on='spec_name')
 
@@ -294,6 +312,9 @@ def get_bak_spec_table(df):
         'abiturient_id_sec_w': '2 волна', 'point_mean_sec_w': '2 волна, балл',
         'kcp_p': 'Остаток до закрытия КЦП', 'zapas': 'Запас по заялениям'
     })
+
+    total_stats_dict['Остаток до закрытия КЦП'] = grouped['Остаток до закрытия КЦП'].sum()
+    total_stats_dict['Запас по заялениям'] = grouped['Запас по заялениям'].sum()
 
     grouped = grouped.round(1)
     grouped['level_code'] = grouped['Код специальности'].apply(get_edu_level)
@@ -326,29 +347,23 @@ def get_bak_spec_table(df):
         sort_action="native"
     )
 
-    return table, fig
+    total_table = dash.dash_table.DataTable(
+        data=[total_stats_dict],
+        style_cell={'font_size': '12px',
+                    'text_align': 'center'
+                    },
+        export_format='xlsx',
+        export_headers='display',
+        sort_action="native"
+    )
+
+    return table, fig, total_table
 
 @callback(
-    [Output('fst_w_table', 'children'), Output('fst_w_plot', 'figure')],
+    [Output('fst_w_table', 'children'), Output('fst_w_plot', 'figure'), Output('total_table', 'children')],
     [Input('load_data_fst_w', 'n_intervals')]
 )
 def plot_bak_spec(n):
 
     df = DATA_LOADER.load_data()
     return get_bak_spec_table(df)
-    # df_prior = get_bak_spec_prior(df)
-    # df_fst_w = get_bak_spec_fst_w(df)
-    # df_sec_w = get_bak_spec_sec_w(df)
-    # kcp_dict = get_kcp_dict_by_edu_level('Бакалавриат/Специалитет')
-    # kcp_dict = get_kcp_dict_by_edu_form(kcp_dict, 'Очное')
-    #
-    # prior_stats = get_prior_stats(df_prior)
-    # fst_w_stats = get_fst_w_stats(df_fst_w)
-    # sec_w_stats = get_sec_w_stats(df_sec_w)
-    #
-    # osn_k_grouped = fst_w_stats.merge(sec_w_stats, on='spec_name', suffixes=('fst_w', 'sec_w'))
-    #
-    # grouped = prior_stats.merge(osn_k_grouped, how='left', on='spec_name')
-    # grouped['kcp'] = grouped.apply(lambda row: kcp_dict[row['spec_name']]['kcp_b_all'], axis=1)
-    # grouped.to_excel('fst_w.xlsx')
-    # return 'Тут скоро будет таблица'
