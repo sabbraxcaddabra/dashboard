@@ -194,7 +194,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     df = DATA_LOADER.data
 
     plot_bak_spec(df)
-    enrolled = df[df['app_id'].notna()]
+    enrolled = df[df['decree_id'].notna()]
 
     df = get_df_by_edu_level(df, edu_level)
     df = get_df_by_edu_form(df, edu_form)
@@ -221,18 +221,18 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
 
     fintype_ = fintype_dict[fintype]
 
-    df = df[df['app_id'].isna()]
+    df = df[df['decree_id'].isna()]
     df['point_sum'] = df['point_sum'] + df['ach']
 
     grouped_sogl = df.groupby(['spec_name', 'spec_code'], as_index=False).agg({'orig_and_agree': 'sum'})
     grouped_sogl['kcp'] = grouped_sogl.apply(lambda row: kcp_dict[row['spec_name']][fintype_], axis=1)
 
-    grouped = enrolled.groupby('spec_name', as_index=False).agg({'app_id':'count'})
+    grouped = enrolled.groupby('spec_name', as_index=False).agg({'decree_id': 'count'})
 
     grouped_sogl = grouped_sogl.merge(grouped, how='left', on='spec_name')
     grouped_sogl = grouped_sogl.fillna(0.)
 
-    grouped_sogl['kcp_p'] = grouped_sogl['kcp'] - grouped_sogl['app_id']
+    grouped_sogl['kcp_p'] = grouped_sogl['kcp'] - grouped_sogl['decree_id']
     grouped_sogl['min_point'] = grouped_sogl.apply(lambda row: get_minimum_bal(df, row['spec_name'], row['kcp_p']), axis=1)
     grouped_sogl = grouped_sogl[grouped_sogl['kcp'] > 0]
     grouped_sogl['Заполняемость'] = grouped_sogl['orig_and_agree'] / grouped_sogl['kcp_p']
@@ -259,7 +259,8 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
                          'kcp': labels[0],
                          'kcp_p': labels[1],
                          'orig_and_agree': 'Согласий с оригиналом',
-                         'min_point': 'Проходной балл'
+                         'min_point': 'Проходной балл',
+                         'decree_id': 'Зачислено'
                          }
                  )
 
@@ -286,6 +287,7 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
             'spec_name': 'Название специальности',
             'kcp_p': labels[1],
             'min_point': 'Проходной балл',
+            'decree_id': 'Зачислено',
             'spec_code': 'Код специальности',
             'Заполняемость': 'Заполняемость, %',
             'Остаток': 'Остаток, %'
@@ -293,9 +295,9 @@ def plot_kcp_ratio(n, edu_level, edu_form, fintype):
     )
 
     if fintype == 'Контракт':
-        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %']
+        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Зачислено', 'Заполняемость, %', 'Остаток, %']
     else:
-        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Заполняемость, %', 'Остаток, %', 'Проходной балл']
+        loc_list = ['Название специальности', 'Код специальности', labels[1], 'Зачислено', 'Заполняемость, %', 'Остаток, %', 'Проходной балл']
 
     grouped_sogl = grouped_sogl.loc[:, loc_list]
     grouped_sogl = grouped_sogl.sort_values(['Название специальности', 'Код специальности'], ascending=False)
