@@ -86,7 +86,7 @@ def get_df_by_fintype(tmp_df, fintype):
 def get_minimum_bal(df: pd.DataFrame, spec_name, kcp_p):
     df = df[df['spec_name'] == spec_name]
     df = df[df['orig_and_agree'] == 1]
-    df = df[df['app_id'].isna()]
+    df = df[df['decree_id'].isna()]
     df = df.sort_values('point_sum', ascending=False)
     if df.shape[0] > kcp_p:
         df = df.iloc[:int(kcp_p)]

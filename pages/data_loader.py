@@ -46,14 +46,15 @@ class DailyDataLoader:
     _engine = get_engine()
 
     _query = """
-        select
-          base.ss_agr, base.app_id, base.abId as 'abiturient_id', base.statId as 'status_id', base.statN as 'status_name', base.hos as 'hostel', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
+          select
+          if(base.decree_del is null, base.decree_id, null) as decree_id,
+          base.ss_agr, base.abId as 'abiturient_id', base.statId as 'status_id', base.statN as 'status_name', base.hos as 'hostel', base.specId as 'spec_id', base.specN as 'spec_name', base.specC as 'spec_code', 
             base.specP as 'profile_name', base.eduId as 'edu_level_id', base.eduN as 'edu_level', base.finId as 'fintype_id', base.finN as 'fintype', base.forId as 'edu_from_id', 
             base.forN as 'edu_form', base.posId as 'post_method_id', base.posN as 'post_method', base.tim as 'add_data', base.org as 'original', base.agr as 'agree', base.dog as 'dogovor',
             base.decNum as 'decree_num', base.decData as 'dec_data'
         from 
         (select
-            consent.sspriem_mark as ss_agr, application.id as app_id, abiturient.id as abId, abiturient_status.id as statId, abiturient_status.name as statN, side_info.hostel as hos, specialty.id as specId, specialty.name as specN, specialty.code as specC, 
+            consent.sspriem_mark as ss_agr, enrolled.decree_id as decree_id, enrolled.decree_del as decree_del, abiturient.id as abId, abiturient_status.id as statId, abiturient_status.name as statN, side_info.hostel as hos, specialty.id as specId, specialty.name as specN, specialty.code as specC, 
                 specialty_profile.name as specP, edulevel.id as eduId, edulevel.name as eduN, fintype.id as finId, fintype.name as finN, eduform.id as forId, eduform.name as forN, post_method.id as posId, post_method.name as posN, application.add_time as tim,
                 if(abiturient.id in (select edu_doc.abiturient_id from edu_doc where edu_doc.deleted_at is null and edu_doc.original = 1), 1, 0) as org,
                 if(concat(abiturient.id, application.id) in (select concat(consent.abiturient_id, consent.application_id) from consent where consent.deleted_at is null), 1, 0) as agr,
