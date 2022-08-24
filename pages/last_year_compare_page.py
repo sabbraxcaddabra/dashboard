@@ -305,13 +305,13 @@ def get_stats_by_year(df, df_decreed):
     return res_dict
 
 @callback(
-    Output('pick_a_date_single', 'max_date_allowed'),
+    [Output('pick_a_date_single', 'max_date_allowed'), Output('pick_a_date_single', 'date')],
     [Input('update_interval', 'n_intervals')]
 )
 def update_dates_range(n):
     df = DATA_LOADER.data
     max_date = df['add_data'].max()
-    return max_date
+    return max_date, max_date
 
 @callback(
     Output('total_compare_table', 'children'),
