@@ -116,7 +116,6 @@ layout = html.Div(children=[
     html.Div(id='zapol_table')
 ])
 
-
 def get_minimum_bal(df: pd.DataFrame, spec_name, kcp_p):
     df = df[df['spec_name'] == spec_name]
     df = df[df['orig_and_agree'] == 1]

@@ -17,7 +17,7 @@ with open(CONFIG_FILE, encoding='utf-8') as config_file:
 
 import dash_bootstrap_components as dbc
 
-from pages import daily_load_page, stats_page, last_year_compare_page, occupancy_page, fst_w_page
+from pages import daily_load_page, stats_page, last_year_compare_page, occupancy_page, fst_w_page, enrolled_page
 
 external_stylesheets = [dbc.themes.GRID,
                       dbc.themes.BOOTSTRAP,
@@ -30,10 +30,10 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_ca
                 ]
                 )
 
-auth = dash_auth.BasicAuth(
-    app,
-    users
-)
+# auth = dash_auth.BasicAuth(
+#     app,
+#     users
+# )
 
 server = app.server
 
@@ -56,7 +56,12 @@ report_type = html.Div(children=[
     html.H2('Тип отчета'),
     dcc.Dropdown(
         id='report_type',
-        options=['Анализ первой волны', 'Заполняемость', 'Деканское', 'Ежедневный отчет', 'Сравнение с ПК 2021'], value='Анализ первой волны', clearable=False
+        options=['Аналитика по зачисленным',
+                 'Анализ первой волны',
+                 'Заполняемость',
+                 'Деканское',
+                 'Ежедневный отчет',
+                 'Сравнение с ПК 2021'], value='Аналитика по зачисленным', clearable=False
     ),
     html.Br(),
 ])
@@ -75,6 +80,7 @@ app.layout = dbc.Container(children=[
 def refresh_page(report_type):
 
     report_dict = {
+        'Аналитика по зачисленным': '/enrolled_page',
         'Ежедневный отчет': '/daily_load_page',
         'Деканское': '/stats_page',
         'Сравнение с ПК 2021': '/compare_2021_page',
@@ -109,6 +115,8 @@ def display_page(pathname):
         return occupancy_page.layout
     elif pathname == '/fst_w_page':
         return fst_w_page.layout
+    elif pathname == '/enrolled_page':
+        return enrolled_page.layout
     else:
         return '404'
 
