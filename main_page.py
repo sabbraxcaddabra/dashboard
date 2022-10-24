@@ -17,7 +17,7 @@ with open(CONFIG_FILE, encoding='utf-8') as config_file:
 
 import dash_bootstrap_components as dbc
 
-from pages import daily_load_page, stats_page, last_year_compare_page, occupancy_page, fst_w_page, enrolled_page
+from pages import daily_load_page, stats_page, last_year_compare_page, occupancy_page, fst_w_page, enrolled_page, map_page
 
 external_stylesheets = [dbc.themes.GRID,
                       dbc.themes.BOOTSTRAP,
@@ -57,6 +57,7 @@ report_type = html.Div(children=[
     dcc.Dropdown(
         id='report_type',
         options=['Аналитика по зачисленным',
+                 'Карта',
                  'Анализ первой волны',
                  'Заполняемость',
                  'Деканское',
@@ -80,6 +81,7 @@ app.layout = dbc.Container(children=[
 def refresh_page(report_type):
 
     report_dict = {
+        'Карта': '/map',
         'Аналитика по зачисленным': '/enrolled_page',
         'Ежедневный отчет': '/daily_load_page',
         'Деканское': '/stats_page',
@@ -117,10 +119,12 @@ def display_page(pathname):
         return fst_w_page.layout
     elif pathname == '/enrolled_page':
         return enrolled_page.layout
+    elif pathname == '/map':
+        return map_page.layout
     else:
         return '404'
 
 if __name__ == '__main__':
     # app.run_server('172.24.135.27', debug=True)
 
-    app.run_server(debug=True)
+    app.run(debug=True)
