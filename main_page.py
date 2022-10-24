@@ -30,10 +30,10 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_ca
                 ]
                 )
 
-# auth = dash_auth.BasicAuth(
-#     app,
-#     users
-# )
+auth = dash_auth.BasicAuth(
+    app,
+    users
+)
 
 server = app.server
 
@@ -125,6 +125,6 @@ def display_page(pathname):
         return '404'
 
 if __name__ == '__main__':
-    # app.run_server('172.24.135.27', debug=True)
+    app.run('172.24.135.27', port=5000, debug=True)
 
-    app.run(debug=True)
+    # app.run(debug=True)
