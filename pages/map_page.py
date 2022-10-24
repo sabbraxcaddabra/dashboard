@@ -15,6 +15,7 @@ import os
 HERE = os.path.dirname(__file__)
 
 MAPPER_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "app1.json"))
+LOCALIZATION_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "base_to_rus.json"))
 REGIONS_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "regions.csv"))
 
 with urlopen('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/russia.geojson') as response:
@@ -23,8 +24,20 @@ with urlopen('https://raw.githubusercontent.com/codeforamerica/click_that_hood/m
 with open(MAPPER_FILE, encoding='utf8') as mapper:
     mapper_dict = json.load(mapper)
 
+with open(LOCALIZATION_FILE, encoding='utf8') as localization:
+    localization_dict = json.load(localization)
+
 for tmp_id, tmp_dict in enumerate(counties['features']):
     tmp_dict['id'] = tmp_id
+
+def localization(dict_to_localizate):
+    tmp_dict = {}
+    for key in dict_to_localizate.keys():
+        locate_key = localization_dict.get(key)
+        if locate_key:
+            tmp_dict[locate_key] = dict_to_localizate[key]
+
+    return tmp_dict
 
 map_regio_names = [tmp_dict['properties']['name'] for tmp_dict in counties['features']]
 map_regio_id = {tmp_dict['properties']['name']: tmp_dict['id'] for tmp_dict in counties['features']}
@@ -36,7 +49,7 @@ df['map_id'] = df['map_name'].apply(lambda map_name: map_regio_id[map_name])
 
 fig = px.choropleth_mapbox(df, geojson=counties, color="count_text", locations="map_id",
                            featureidkey="id", hover_data=['map_name', 'count_apps_enr'],
-                           labels={'map_name':'Регион', 'count_apps_enr': 'Кол-во зачисленных', 'count_text': 'Количество зачисленных'},
+                           labels={'map_name':'Регион', 'count_apps_enr': 'Кол-во зачисленных', 'count_text': localization_dict['count_text']},
                            color_discrete_map={
                                "менее 10": "darkgreen",
                                "от 20 до 30": "green",
@@ -73,6 +86,7 @@ def click(clickData, is_open):
     tmp_df = df[df['map_name'] == region]
 
     regio_dict = tmp_df.to_dict('records')[0]
+    regio_dict = localization(regio_dict)
     tmp_df = pd.DataFrame(data={
         'Показатель': list(regio_dict.keys()),
         'Значение': list(regio_dict.values())
