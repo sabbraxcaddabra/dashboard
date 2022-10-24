@@ -16,6 +16,7 @@ HERE = os.path.dirname(__file__)
 
 MAPPER_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "app1.json"))
 LOCALIZATION_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "base_to_rus.json"))
+ZAVOD_FILE = os.path.abspath(os.path.abspath(os.path.join(HERE, "..", "data", "zavod.csv")))
 REGIONS_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "regions.csv"))
 
 with urlopen('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/russia.geojson') as response:
@@ -43,6 +44,7 @@ map_regio_names = [tmp_dict['properties']['name'] for tmp_dict in counties['feat
 map_regio_id = {tmp_dict['properties']['name']: tmp_dict['id'] for tmp_dict in counties['features']}
 
 df = pd.read_csv(REGIONS_FILE)
+zavod_df = pd.read_csv(ZAVOD_FILE)
 
 df['map_name'] = df['region'].apply(lambda name: mapper_dict.get(name))
 df['map_id'] = df['map_name'].apply(lambda map_name: map_regio_id[map_name])
@@ -92,10 +94,20 @@ def click(clickData, is_open):
         'Значение': list(regio_dict.values())
     })
 
+    zavod_tmp_df = zavod_df[zavod_df['Регион'] == region]
+
+    zavod_tmp_df = zavod_tmp_df.loc[:, ['Предприятие', 'Кол-во зачисленных']]
+
+    zavod_table = dash_table.DataTable(
+        data=zavod_tmp_df.to_dict('records'),
+        columns=[{"name": i, "id": i} for i in zavod_tmp_df.columns],
+        style_cell={'textAlign': 'left'},
+    )
+
     table = dash_table.DataTable(
         data=tmp_df.to_dict('records'),
         columns=[{"name": i, "id": i} for i in tmp_df.columns],
         style_cell={'textAlign': 'left'},
     )
 
-    return not is_open, f'Статистика по региону: {region}', table
+    return not is_open, f'Статистика по региону: {region}', html.Div(children=[table, html.Br(), zavod_table])
