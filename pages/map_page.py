@@ -17,6 +17,7 @@ HERE = os.path.dirname(__file__)
 MAPPER_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "app1.json"))
 LOCALIZATION_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "base_to_rus.json"))
 ZAVOD_FILE = os.path.abspath(os.path.abspath(os.path.join(HERE, "..", "data", "zavod.csv")))
+PROF_FILE = os.path.abspath(os.path.abspath(os.path.join(HERE, "..", "data", "prof.csv")))
 REGIONS_FILE = os.path.abspath(os.path.join(HERE, "..", "data", "regions.csv"))
 
 with urlopen('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/russia.geojson') as response:
@@ -45,6 +46,7 @@ map_regio_id = {tmp_dict['properties']['name']: tmp_dict['id'] for tmp_dict in c
 
 df = pd.read_csv(REGIONS_FILE)
 zavod_df = pd.read_csv(ZAVOD_FILE)
+prof_df = pd.read_csv(PROF_FILE)
 
 df['map_name'] = df['region'].apply(lambda name: mapper_dict.get(name))
 df['map_id'] = df['map_name'].apply(lambda map_name: map_regio_id[map_name])
@@ -95,14 +97,35 @@ def click(clickData, is_open):
     })
 
     zavod_tmp_df = zavod_df[zavod_df['Регион'] == region]
+    prof_tmp_df = prof_df[prof_df['region'] == region]
+
 
     zavod_tmp_df = zavod_tmp_df.loc[:, ['Предприятие', 'Кол-во зачисленных']]
+    prof_tmp_df = prof_tmp_df.drop('region', axis=1).rename(
+        columns=dict(took_part='Количество абитуриентов, прошедших профориентацию',
+                     enrolled='Количество зачисленных абитуриентов, прошедших профориентацию',
+                     cooperated='Количество школ, с которыми сотрудничает БГТУ "ВОЕНМЕХ"'
+                     )
+    )
 
     zavod_table = dash_table.DataTable(
         data=zavod_tmp_df.to_dict('records'),
         columns=[{"name": i, "id": i} for i in zavod_tmp_df.columns],
-        style_cell={'textAlign': 'left'},
+        style_cell={'textAlign': 'center'},
     )
+
+    if prof_tmp_df.empty:
+        prof_table = html.H5('Информации по школам в этом регионе нет')
+    else:
+        prof_tmp_df = prof_tmp_df.T.reset_index()
+        print(prof_tmp_df.empty)
+        prof_tmp_df = prof_tmp_df.rename(
+            columns={prof_tmp_df.columns[0]: "Показатель", prof_tmp_df.columns[1]: "Значение"})
+        prof_table = dash_table.DataTable(
+            data=prof_tmp_df.to_dict('records'),
+            columns=[{"name": i, "id": i} for i in prof_tmp_df.columns],
+            style_cell={'textAlign': 'left'},
+        )
 
     table = dash_table.DataTable(
         data=tmp_df.to_dict('records'),
@@ -110,4 +133,13 @@ def click(clickData, is_open):
         style_cell={'textAlign': 'left'},
     )
 
-    return not is_open, f'Статистика по региону: {region}', html.Div(children=[table, html.Br(), zavod_table])
+    return not is_open, f'Статистика по региону: {region}', html.Div(children=[
+        html.H3('Общая информация'),
+        table,
+        html.Br(),
+        html.H3('Предприятия'),
+        zavod_table,
+        html.Br(),
+        html.H3('Школы'),
+        prof_table
+    ])
