@@ -14,17 +14,17 @@ LAST_YEAR_DATA = os.path.abspath(os.path.join(HERE, ".", "srez21.xlsx"))
 def get_engine():
     CONFIG_FILE = os.path.abspath(os.path.join(HERE, "..", "config.json"))
 
-    with open(CONFIG_FILE, encoding='utf-8') as config_file:
-        config_dict = json.load(config_file)
-        db_config = config_dict['db_config']
-        username = db_config['username']
-        password = db_config['password']
-        host = db_config['host']
-        db_name = db_config['db_name']
+    # with open(CONFIG_FILE, encoding='utf-8') as config_file:
+    #     config_dict = json.load(config_file)
+    #     db_config = config_dict['db_config']
+    #     username = db_config['username']
+    #     password = db_config['password']
+    #     host = db_config['host']
+    #     db_name = db_config['db_name']
         
     try:
         engine = create_engine(
-            f'mysql+pymysql://{username}:{password}@{host}/{db_name}'
+            'mysql+pymysql://caddabra:soFu9n?y@172.17.20.185/priem2022'
         )
         conn = engine.connect()
         conn.close()
